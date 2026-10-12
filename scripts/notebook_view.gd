@@ -72,7 +72,7 @@ func _render_people() -> void:
 		silhouette.custom_minimum_size = Vector2(SILHOUETTE_SIZE, SILHOUETTE_SIZE)
 		silhouette.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 		row.add_child(silhouette)
-		silhouette.show_person(id, GameState.velo_level(id))
+		silhouette.show_person(data, id, GameState.velo_level(id))
 		var texts := VBoxContainer.new()
 		texts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(texts)

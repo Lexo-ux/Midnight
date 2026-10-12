@@ -3,19 +3,20 @@ extends RefCounted
 ## número de versión. Al cargar lo valida todo contra los datos del juego: una
 ## partida dañada, de otra versión (por ejemplo la del prototipo de Marta, la
 ## versión 1) o con ids desconocidos se descarta con un aviso y el juego empieza
-## de cero. Nunca detiene el juego.
+## de cero. Las partidas de la versión 2 se migran. Nunca detiene el juego.
 
 const GameData := preload("res://scripts/game_data.gd")
 
-## Versión 1: prototipo de las Tasks 01-02 (se descarta). Versión 2: Medianoche en Much.
+## Versión 1: prototipo de las Tasks 01-02 (se descarta). Versión 2: Medianoche en
+## Much (Task 03). Versión 3: añade las estaciones de cada protagonista en cada
+## lugar y la estación de los puntos interactivos en la ruta (Task 05).
 ## Súbela si cambia el formato y añade aquí la migración desde la anterior.
-const SAVE_VERSION: int = 2
+const SAVE_VERSION: int = 3
+## Versiones que se migran al cargar.
+const MIGRATABLE_VERSIONS: Array[int] = [2]
 
 ## Lo que devuelve _whole() cuando un número no vale.
 const INVALID: int = -1_000_000
-const COMMAND_VERBS: PackedStringArray = [
-	"rutina", "esperar", "observar", "seguir", "hablar", "interactuar", "leer", "retener", "entregar", "desviar",
-]
 
 
 static func write(path: String, snapshot: Dictionary) -> bool:
@@ -58,8 +59,10 @@ static func validate(save: Variant, data: GameData) -> Dictionary:
 		return _invalid("el contenido no es un objeto JSON")
 	var root: Dictionary = save
 	var version: Variant = root.get("version")
-	if not _is_whole(version) or int(version) != SAVE_VERSION:
+	if not _is_whole(version) or (int(version) != SAVE_VERSION and not MIGRATABLE_VERSIONS.has(int(version))):
 		return _invalid("versión %s no compatible, se esperaba %d" % [int(version) if _is_whole(version) else version, SAVE_VERSION])
+	if int(version) == 2:
+		root = _migrate_from_v2(root)
 	var loop_number := _whole(root.get("loop_number"), 1, 1_000_000)
 	if loop_number == INVALID:
 		return _invalid("loop_number no válido")
@@ -196,7 +199,10 @@ static func _loop_state(source: Variant, data: GameData) -> Dictionary:
 	var ending: Variant = source.get("ending")
 	if not ending is String or (ending != "" and not _ending_ids(data).has(ending)) or (ending != "") != (time >= data.day_end):
 		return {"error": "final no válido"}
-	if source.size() != 14:
+	var stations := _stations(source.get("stations"), data)
+	if stations.has("error"):
+		return {"error": "estaciones no válidas"}
+	if source.size() != 15:
 		return {"error": "el estado del bucle tiene claves de más o de menos"}
 
 	return {
@@ -214,7 +220,38 @@ static func _loop_state(source: Variant, data: GameData) -> Dictionary:
 		"route": route,
 		"outcome": {"lines": lines, "clues": outcome_clues},
 		"ending": ending,
+		"stations": stations,
 	}
+
+
+## La versión 2 no tenía estaciones: cada protagonista empieza sin ninguna (la
+## cámara va a la entrada del lugar). Lo demás no cambió.
+static func _migrate_from_v2(save: Dictionary) -> Dictionary:
+	var migrated: Dictionary = save.duplicate(true)
+	if migrated.get("loop") is Dictionary and not migrated["loop"].has("stations"):
+		migrated["loop"]["stations"] = {}
+	return migrated
+
+
+## {protagonista: {lugar con escena: estación}}; {"error": ...} si no encaja.
+static func _stations(source: Variant, data: GameData) -> Dictionary:
+	if not source is Dictionary:
+		return {"error": true}
+	var result: Dictionary = {}
+	for actor: String in data.protagonist_ids:
+		var per_place: Variant = source.get(actor, {})
+		if not per_place is Dictionary:
+			return {"error": true}
+		result[actor] = {}
+		for place: Variant in per_place:
+			var station: Variant = per_place[place]
+			if not data.has_scene(str(place)) or not station is String or not data.scenes[place]["station_index"].has(station):
+				return {"error": true}
+			result[actor][str(place)] = station
+	for actor: Variant in source:
+		if not data.is_protagonist(str(actor)):
+			return {"error": true}
+	return result
 
 
 ## Lista de pasos grabados; null si algo no encaja.
@@ -234,7 +271,10 @@ static func _route(source: Variant, data: GameData) -> Variant:
 			route.append({"t": t, "switch": entry["switch"]})
 			continue
 		var command: Variant = entry.get("command")
-		if not command is Dictionary or command.size() != 4 or not COMMAND_VERBS.has(command.get("verb", "")):
+		if not command is Dictionary or not GameData.COMMAND_VERBS.has(command.get("verb", "")):
+			return null
+		var station: Variant = command.get("station", "")
+		if command.size() != (5 if command.has("station") else 4):
 			return null
 		for key: String in ["place", "target", "id"]:
 			if not command.get(key) is String:
@@ -246,8 +286,12 @@ static func _route(source: Variant, data: GameData) -> Variant:
 		var id: String = command["id"]
 		if id != "" and not (data.talks.has(id) or data.interactions.has(id) or data.letters.has(id)):
 			return null
-		route.append({"t": t, "command": {"verb": command["verb"], "place": command["place"],
-				"target": command["target"], "id": id}})
+		var plain: Dictionary = {"verb": command["verb"], "place": command["place"], "target": command["target"], "id": id}
+		if command.has("station"):
+			if not station is String or not data.has_scene(command["place"]) or not data.scenes[command["place"]]["station_index"].has(station):
+				return null
+			plain["station"] = station
+		route.append({"t": t, "command": plain})
 	return route
 
 

@@ -11,6 +11,10 @@ extends RefCounted
 ## Entre bucles: cada pasada empieza con el Cuaderno de la anterior más todo lo
 ## descubierto en ella, hasta que no aparece nada nuevo. Unir lo descubierto en
 ## ramas distintas es una aproximación (generosa) del jugador que vuelve.
+##
+## Puntos interactivos (data/scenes.json): tocarlos es «observar» el lugar, así
+## que aquí se anota qué pista da observar cada lugar, con qué mirada y a qué
+## hora, y se comprueba que cada punto revele su pista dentro de su ventana.
 
 const GameData := preload("res://scripts/game_data.gd")
 const Simulation := preload("res://scripts/simulation.gd")
@@ -20,6 +24,8 @@ const MAX_PASSES: int = 8
 var data: GameData
 ## Bandera (o "trail:...") -> último minuto en que alguna condición puede leerla.
 var horizons: Dictionary = {}
+## "lugar|protagonista|minuto|pista" -> true: observar el lugar dio esa pista.
+var observed: Dictionary = {}
 
 
 func _init(game_data: GameData) -> void:
@@ -63,6 +69,7 @@ func explore_loop(cuaderno: Dictionary, banned: Dictionary = {}) -> Dictionary:
 ## Devuelve {clues: {id: pasada}, endings: {id: pasada}, passes, states}.
 func explore_all(banned: Dictionary = {}, start_cuaderno: Dictionary = {}) -> Dictionary:
 	var cuaderno: Dictionary = start_cuaderno.duplicate()
+	observed.clear()
 	var clues: Dictionary = {}
 	var endings: Dictionary = {}
 	var total_states: int = 0
@@ -103,7 +110,26 @@ func validate(start_cuaderno: Dictionary = {}) -> Dictionary:
 		if not result["endings"].has(ending["id"]):
 			problems.append("el final \"%s\" es inalcanzable dentro de la ventana %s-%s." % [
 				ending["id"], GameData.format_time(data.loop_start), GameData.format_time(data.day_end)])
+	result["hotspot_clues"] = {}
+	for id: String in data.hotspots:
+		var hotspot: Dictionary = data.hotspots[id]
+		if hotspot["link_kind"] != "clue":
+			continue
+		if hotspot_reveals(hotspot):
+			result["hotspot_clues"][hotspot["link_id"]] = true
+		else:
+			problems.append("el punto \"%s\" nunca revela \"%s\" con su mirada entre las %s y las %s." % [id,
+					hotspot["link_id"], GameData.format_time(hotspot["from"]), GameData.format_time(hotspot["to"])])
 	return {"problems": problems, "result": result}
+
+
+## Algún estado explorado, dentro de la ventana y con la mirada del punto, da su pista al observar el lugar.
+func hotspot_reveals(hotspot: Dictionary) -> bool:
+	for minute: int in range(hotspot["from"], hotspot["to"], data.step_minutes):
+		for actor: String in data.protagonist_ids:
+			if (hotspot["look"] == "both" or hotspot["look"] == actor) 					and observed.has("%s|%s|%d|%s" % [hotspot["place"], actor, minute, hotspot["link_id"]]):
+				return true
+	return false
 
 
 ## Grafo de pistas en Mermaid: qué pistas habilitan qué, y qué lleva a cada final.
@@ -113,7 +139,8 @@ func clue_graph_markdown(result: Dictionary) -> String:
 		"",
 		"Generado por `scripts/dev/validate_loops.gd`. Una flecha A --> B significa que una",
 		"acción o evento que exige A puede dar B. Las banderas van entre corchetes; el número",
-		"tras cada pista es la primera pasada (bucle) en que el validador la alcanzó.",
+		"tras cada pista es la primera pasada (bucle) en que el validador la alcanzó. Los",
+		"círculos con línea de puntos son puntos interactivos de las escenas.",
 		"",
 		"```mermaid",
 		"flowchart LR",
@@ -143,6 +170,10 @@ func clue_graph_markdown(result: Dictionary) -> String:
 	for ending: Dictionary in data.endings:
 		for need: String in _referenced(ending["if"]):
 			edges["%s --> %s" % [_node(need, result), _node("FINAL:" + ending["id"], result)]] = true
+	for id: String in data.hotspots:
+		var hotspot: Dictionary = data.hotspots[id]
+		if hotspot["link_kind"] == "clue":
+			edges['hs_%s(("%s")) -.-> %s' % [id, hotspot["label"], _node(hotspot["link_id"], result)]] = true
 	var sorted: Array = edges.keys()
 	sorted.sort()
 	for edge: String in sorted:
@@ -168,6 +199,8 @@ func _successor_commands(sim: Simulation, state: Dictionary, banned: Dictionary)
 				continue
 			for id: String in sim.preview_clues(actor, action):
 				sim.found[id] = true
+				if action["verb"] == "observar" and action["target"] == "":
+					observed["%s|%s|%d|%s" % [action["place"], actor, state["time"], id]] = true
 			if not waited.has(action["place"]):
 				waited[action["place"]] = true
 				commands.append({"actor": actor, "command": {"verb": "esperar", "place": action["place"], "target": "", "id": ""}})

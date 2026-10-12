@@ -1,11 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
   <!-- Silueta provisional para el estudio. Convención: cuerpo en rojo puro (#ff0000),
        rasgo fijo en verde puro (#00ff00); el juego los tiñe según el Velo. -->
-  <!-- Sazil (provisional): bolsa de correo y gorra -->
-  <circle cx="128" cy="80" r="34" fill="#ff0000"/>
-  <path d="M62 256 C62 180 90 130 128 130 C166 130 194 180 194 256 Z" fill="#ff0000"/>
-  <path d="M92 74 C92 38 164 38 164 74 Z" fill="#00ff00"/>
-  <rect x="88" y="66" width="80" height="12" rx="6" fill="#00ff00"/>
-  <path d="M100 132 L200 214" stroke="#00ff00" stroke-width="12"/>
-  <rect x="168" y="190" width="74" height="54" rx="10" fill="#00ff00"/>
+  <!-- Sazil: cartera joven, vestido; rasgo fijo: trenza lateral y bolsa de correo -->
+  <path d="M94 78 C90 36 166 36 162 78 C162 100 148 112 128 112 C108 112 94 100 94 78 Z" fill="#ff0000"/>
+  <path d="M88 76 C82 120 92 150 100 156 L106 120 Z" fill="#ff0000"/>
+  <path d="M60 256 C66 196 84 132 128 126 C172 132 190 196 196 256 Z" fill="#ff0000"/>
+  <ellipse cx="164" cy="98" rx="11" ry="13" fill="#00ff00"/>
+  <ellipse cx="168" cy="120" rx="10" ry="12" fill="#00ff00"/>
+  <ellipse cx="170" cy="141" rx="9" ry="11" fill="#00ff00"/>
+  <ellipse cx="171" cy="160" rx="7" ry="9" fill="#00ff00"/>
+  <path d="M92 134 L190 206" stroke="#00ff00" stroke-width="11" stroke-linecap="round"/>
+  <rect x="172" y="192" width="64" height="50" rx="10" fill="#00ff00"/>
 </svg>

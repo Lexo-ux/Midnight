@@ -4,7 +4,8 @@ extends Node
 ##
 ## Dos niveles de estado:
 ## - Del bucle (se reinicia a medianoche): todo lo de `sim.s` (hora, a quién
-##   controlas, posiciones, banderas, cartas, Rastro, Desgaste, ruta grabada).
+##   controlas, posiciones, banderas, cartas, Rastro, Desgaste, ruta grabada y
+##   la estación de cada protagonista en cada lugar).
 ## - Permanente: el Cuaderno del Umbral, el Velo de cada persona, los finales
 ##   vistos, las pistas pedidas, los ajustes y la ruta del bucle anterior.
 
@@ -17,6 +18,7 @@ signal settings_changed
 const GameData := preload("res://scripts/game_data.gd")
 const Simulation := preload("res://scripts/simulation.gd")
 const SaveManager := preload("res://scripts/save_manager.gd")
+const SceneRules := preload("res://scripts/scene_rules.gd")
 
 const DEFAULT_SAVE_PATH: String = "user://savegame.json"
 
@@ -113,6 +115,13 @@ func perform(command: Dictionary) -> bool:
 		return false
 	_after_change()
 	return true
+
+
+## Toca un punto interactivo: es «observar» el lugar desde su estación (30 minutos).
+func perform_hotspot(hotspot_id: String) -> bool:
+	if not hotspot_available(hotspot_id):
+		return false
+	return perform(SceneRules.hotspot_command(data.hotspots[hotspot_id]))
 
 
 ## Cierra el diálogo del último paso. No cuesta tiempo.
@@ -239,6 +248,61 @@ func has_clue(id: String) -> bool:
 
 func velo_level(person: String) -> int:
 	return velo.get(person, 0)
+
+
+## Estación de `actor` en `place` ("" si aún no ha hecho nada allí en este bucle).
+func station_of(actor: String, place: String) -> String:
+	return sim.s["stations"][actor].get(place, "")
+
+
+## Qué hacen las manos de `actor` (sale de su última acción del bucle).
+func hands_state(actor: String) -> String:
+	return SceneRules.hands_state(data, sim.s["route"], actor)
+
+
+## El punto existe con la mirada del protagonista activo, a esta hora, y se puede observar el lugar.
+func hotspot_available(hotspot_id: String) -> bool:
+	if not data.hotspots.has(hotspot_id) or is_loop_over():
+		return false
+	var hotspot: Dictionary = data.hotspots[hotspot_id]
+	if not SceneRules.hotspot_visible(hotspot, active_actor(), current_time()):
+		return false
+	return sim.is_available(active_actor(), SceneRules.hotspot_command(hotspot))
+
+
+## Lo que el punto enlaza ya se sabe: la pista está en el Cuaderno, la carta se
+## leyó o el evento ya pasó en este bucle.
+func hotspot_discovered(hotspot_id: String) -> bool:
+	var hotspot: Dictionary = data.hotspots[hotspot_id]
+	match hotspot["link_kind"]:
+		"clue":
+			return cuaderno.has(hotspot["link_id"])
+		"letter":
+			return sim.s["letters"][hotspot["link_id"]]["read"]
+	return sim.s["events_done"].has(hotspot["link_id"])
+
+
+## El mapa de Much: [{place, x, y, selectable, label, protagonists, people}].
+## Solo los lugares con escena se pueden elegir; los demás van sin nombre
+## (sin explorar) salvo que esté allí un protagonista. De los habitantes solo
+## se ve dónde están los que tienen la rutina entera en el Cuaderno (Velo 1).
+func map_nodes() -> Array[Dictionary]:
+	var nodes: Array[Dictionary] = []
+	for node: Dictionary in data.map_nodes:
+		var place: String = node["place"]
+		var protagonists: Array[String] = []
+		for actor: String in data.protagonist_ids:
+			if position_of(actor) == place:
+				protagonists.append(actor)
+		var known: Array[String] = []
+		for person: String in data.npc_ids():
+			if position_of(person) == place and velo_level(person) >= 1:
+				known.append(person)
+		var selectable := data.has_scene(place)
+		nodes.append({"place": place, "x": node["x"], "y": node["y"], "selectable": selectable,
+				"label": data.locations[place]["short"] if selectable or not protagonists.is_empty() else "",
+				"protagonists": protagonists, "people": known})
+	return nodes
 
 
 ## Preguntas abiertas visibles: [{question, resolved, hint_level}].

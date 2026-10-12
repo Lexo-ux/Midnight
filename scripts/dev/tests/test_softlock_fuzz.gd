@@ -2,6 +2,8 @@ extends "res://scripts/dev/tests/test_suite.gd"
 ## Partidas aleatorias (con semilla, reproducibles) con cambios de protagonista
 ## y herramientas al azar. En cada paso comprueba que el jugador siempre tenga
 ## algo que hacer y que cada bucle termine en un número acotado de pasos.
+## Además, de vez en cuando mira alrededor, abre el mapa y mira otro lugar
+## desde él: nada de eso puede cambiar la partida.
 ## Imprime la semilla de cualquier fallo: para reproducirlo, pon RUNS = 1 y
 ## BASE_SEED = esa semilla.
 
@@ -11,21 +13,24 @@ const MAX_STEPS_PER_LOOP: int = 200
 const MAX_LOOPS_PER_RUN: int = 3
 const SWITCH_CHANCE: float = 0.25
 const TOOL_CHANCE: float = 0.06
+const VIEW_CHANCE: float = 0.12
 
 
 func test_random_runs_never_softlock() -> bool:
 	var state := new_state()
-	var stats: Dictionary = {"loops": 0, "steps": 0, "skips": 0, "replays": 0, "endings": {}}
+	var view := new_place_view(state)
+	var map := new_map_view(state)
+	var stats: Dictionary = {"loops": 0, "steps": 0, "skips": 0, "replays": 0, "looks": 0, "endings": {}}
 	for run: int in RUNS:
 		var seed_value: int = BASE_SEED + run
-		var problem := _play_random_run(state, seed_value, stats)
+		var problem := _play_random_run(state, view, map, seed_value, stats)
 		check(problem == "", "semilla %d: %s" % [seed_value, problem])
-	print("        %d partidas, %d bucles, %d pasos, %d saltos, %d repeticiones, finales %s" % [RUNS, stats["loops"],
-			stats["steps"], stats["skips"], stats["replays"], stats["endings"]])
+	print("        %d partidas, %d bucles, %d pasos, %d saltos, %d repeticiones, %d vistazos, finales %s" % [RUNS,
+			stats["loops"], stats["steps"], stats["skips"], stats["replays"], stats["looks"], stats["endings"]])
 	return true
 
 
-func _play_random_run(state: GameStateScript, seed_value: int, stats: Dictionary) -> String:
+func _play_random_run(state: GameStateScript, view: Control, map: Control, seed_value: int, stats: Dictionary) -> String:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
 	state.new_game()
@@ -43,12 +48,35 @@ func _play_random_run(state: GameStateScript, seed_value: int, stats: Dictionary
 			var problem := _softlock_problem(state)
 			if problem != "":
 				return "bucle %d, %s: %s" % [state.loop_number, GameData.format_time(state.current_time()), problem]
+			if rng.randf() < VIEW_CHANCE:
+				problem = _look_around(state, view, map, rng)
+				stats["looks"] += 1
+				if problem != "":
+					return "bucle %d, %s: %s" % [state.loop_number, GameData.format_time(state.current_time()), problem]
 			_random_action(state, rng, stats)
 		stats["loops"] += 1
 		stats["steps"] += steps
 		stats["endings"][state.ending_id()] = stats["endings"].get(state.ending_id(), 0) + 1
 		if not state.start_next_loop():
 			return "no se pudo empezar otro bucle tras el %d" % state.loop_number
+	return ""
+
+
+## Mira la escena, arrastra, abre el mapa y mira otro lugar. "" si la partida no cambió.
+func _look_around(state: GameStateScript, view: Control, map: Control, rng: RandomNumberGenerator) -> String:
+	var before := snapshot_text(state)
+	var places := state.data.visible_location_ids()
+	view.refresh(state.position_of(state.active_actor()), false, "")
+	for i: int in rng.randi_range(1, 4):
+		view.pan_by(rng.randf_range(-2500.0, 2500.0))
+	map.open()
+	map.hide()
+	view.refresh(places[rng.randi_range(0, places.size() - 1)], true, "")
+	view.pan_by(rng.randf_range(-2500.0, 2500.0))
+	if snapshot_text(state) != before:
+		return "mirar alrededor o abrir el mapa cambió la partida"
+	if view.place != "" and view.look != state.active_actor():
+		return "la mirada no es la del protagonista activo"
 	return ""
 
 

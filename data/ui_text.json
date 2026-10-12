@@ -10,7 +10,6 @@
 
   "lugar_abierto": "Abierto",
   "lugar_cerrado": "Cerrado",
-  "lugar_aqui": "Estás aquí",
   "accion_esperar": "Esperar aquí",
   "accion_observar_lugar": "Observar el lugar",
   "accion_observar": "Observar a {nombre}",
@@ -32,8 +31,22 @@
   "rastro_desgaste": "Rastro {rastro}/{rastro_max} · Desgaste {desgaste}/{desgaste_max}",
   "atrapado_aviso": "A Akba se lo llevaron los Cazadores. Cambia a Sazil para seguir el día.",
 
+  "accion_ir": "Ir y esperar allí",
+  "escena_lugar": "{lugar} · {estacion}",
+  "escena_lugar_horario": "{lugar} · {estacion} · {estado}",
+  "escena_lejos": "{lugar}: aún no estás aquí. Cualquier acción te trae (30 minutos).",
+  "escena_volver": "Volver",
+  "escena_fuera": "{nombre} está en {lugar}. Abre el mapa para ir a otro sitio.",
+  "escena_todas": "Todas las acciones",
+  "arte_provisional": "PROVISIONAL",
+
+  "boton_mapa": "Mapa",
+  "mapa_titulo": "Mapa de Much",
+  "mapa_ayuda": "Toca un lugar para verlo. Mirar el mapa no gasta tiempo.",
+  "mapa_leyenda": "En gris: sin explorar.",
+
   "boton_cuaderno": "Cuaderno",
-  "boton_herramientas": "Herramientas",
+  "boton_herramientas": "Tiempo",
   "boton_ajustes": "Ajustes",
 
   "dialogo_seguir": "Seguir",

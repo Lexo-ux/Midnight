@@ -1,7 +1,9 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
-[ext_resource type="Script" path="res://scripts/sky.gd" id="2_sky"]
+[ext_resource type="PackedScene" path="res://scenes/place_view.tscn" id="2_place"]
+[ext_resource type="Script" path="res://scripts/hands_view.gd" id="8_hands"]
+[ext_resource type="PackedScene" path="res://scenes/map_view.tscn" id="9_map"]
 [ext_resource type="PackedScene" path="res://scenes/dialogue_view.tscn" id="3_dialogue"]
 [ext_resource type="PackedScene" path="res://scenes/notebook_view.tscn" id="4_notebook"]
 [ext_resource type="PackedScene" path="res://scenes/tools_view.tscn" id="5_tools"]
@@ -106,19 +108,23 @@ corner_radius_bottom_right = 30
 corner_radius_bottom_left = 30
 corner_detail = 1
 
-[sub_resource type="StyleBoxFlat" id="Card_panel"]
+[sub_resource type="StyleBoxFlat" id="Bottom_panel"]
+content_margin_left = 24.0
+content_margin_top = 20.0
+content_margin_right = 24.0
+content_margin_bottom = 24.0
+bg_color = Color(0.09, 0.08, 0.16, 0.97)
+corner_radius_top_left = 36
+corner_radius_top_right = 36
+
+[sub_resource type="StyleBoxFlat" id="Top_panel"]
 content_margin_left = 28.0
-content_margin_top = 16.0
+content_margin_top = 48.0
 content_margin_right = 28.0
-content_margin_bottom = 20.0
-bg_color = Color(0.97, 0.94, 0.88, 1)
-corner_radius_top_left = 26
-corner_radius_top_right = 26
-corner_radius_bottom_right = 26
-corner_radius_bottom_left = 26
-shadow_color = Color(0, 0, 0, 0.18)
-shadow_size = 8
-shadow_offset = Vector2(0, 4)
+content_margin_bottom = 16.0
+bg_color = Color(0.06, 0.05, 0.12, 0.62)
+corner_radius_bottom_right = 30
+corner_radius_bottom_left = 30
 
 [sub_resource type="StyleBoxFlat" id="Paper_panel"]
 content_margin_left = 40.0
@@ -161,8 +167,8 @@ CheckButton/styles/hover = SubResource("Flat_empty")
 CheckButton/styles/hover_pressed = SubResource("Flat_empty")
 CheckButton/styles/normal = SubResource("Flat_empty")
 CheckButton/styles/pressed = SubResource("Flat_empty")
-CityCard/base_type = &"PanelContainer"
-CityCard/styles/panel = SubResource("Card_panel")
+BottomPanel/base_type = &"PanelContainer"
+BottomPanel/styles/panel = SubResource("Bottom_panel")
 Label/font_sizes/font_size = 40
 Night/base_type = &"PanelContainer"
 Night/styles/panel = SubResource("Night_panel")
@@ -209,6 +215,8 @@ TabActive/base_type = &"Button"
 TabActive/styles/hover = SubResource("Tab_active")
 TabActive/styles/normal = SubResource("Tab_active")
 TabActive/styles/pressed = SubResource("Tab_active")
+TopPanel/base_type = &"PanelContainer"
+TopPanel/styles/panel = SubResource("Top_panel")
 TitleLabel/base_type = &"Label"
 TitleLabel/font_sizes/font_size = 52
 
@@ -222,8 +230,7 @@ grow_vertical = 2
 theme = SubResource("Theme_main")
 script = ExtResource("1_main")
 
-[node name="Sky" type="Control" parent="."]
-unique_name_in_owner = true
+[node name="Backdrop" type="ColorRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -231,92 +238,168 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-script = ExtResource("2_sky")
+color = Color(0.09, 0.08, 0.16, 1)
 
-[node name="Margin" type="MarginContainer" parent="."]
+[node name="PlaceView" parent="." instance=ExtResource("2_place")]
+unique_name_in_owner = true
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
+offset_bottom = -820.0
+
+[node name="Hands" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
 anchor_bottom = 1.0
+offset_left = -300.0
+offset_top = -1200.0
+offset_right = 300.0
+offset_bottom = -800.0
 grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/margin_left = 32
-theme_override_constants/margin_top = 72
-theme_override_constants/margin_right = 32
-theme_override_constants/margin_bottom = 32
+grow_vertical = 0
+mouse_filter = 2
+script = ExtResource("8_hands")
 
-[node name="Layout" type="VBoxContainer" parent="Margin"]
-layout_mode = 2
-theme_override_constants/separation = 20
+[node name="Top" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+grow_horizontal = 2
+theme_type_variation = &"TopPanel"
 
-[node name="Header" type="HBoxContainer" parent="Margin/Layout"]
-layout_mode = 2
-
-[node name="TimeLabel" type="Label" parent="Margin/Layout/Header"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-theme_type_variation = &"TitleLabel"
-
-[node name="LoopLabel" type="Label" parent="Margin/Layout/Header"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_vertical = 4
-
-[node name="Switcher" type="HBoxContainer" parent="Margin/Layout"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_constants/separation = 20
-
-[node name="Status" type="Label" parent="Margin/Layout"]
-unique_name_in_owner = true
-layout_mode = 2
-autowrap_mode = 3
-
-[node name="Bag" type="VBoxContainer" parent="Margin/Layout"]
-unique_name_in_owner = true
+[node name="Box" type="VBoxContainer" parent="Top"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="CityScroll" type="ScrollContainer" parent="Margin/Layout"]
+[node name="Header" type="HBoxContainer" parent="Top/Box"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="TimeLabel" type="Label" parent="Top/Box/Header"]
 unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"TitleLabel"
+
+[node name="LoopLabel" type="Label" parent="Top/Box/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+
+[node name="SettingsButton" type="Button" parent="Top/Box/Header"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 120)
+layout_mode = 2
+
+[node name="Buttons" type="HBoxContainer" parent="Top/Box"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="MapButton" type="Button" parent="Top/Box/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+size_flags_horizontal = 3
+autowrap_mode = 3
+
+[node name="NotebookButton" type="Button" parent="Top/Box/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+size_flags_horizontal = 3
+autowrap_mode = 3
+
+[node name="ToolsButton" type="Button" parent="Top/Box/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+size_flags_horizontal = 3
+autowrap_mode = 3
+
+[node name="CaptionRow" type="HBoxContainer" parent="Top/Box"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Caption" type="Label" parent="Top/Box/CaptionRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+autowrap_mode = 3
+
+[node name="BackButton" type="Button" parent="Top/Box/CaptionRow"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(200, 120)
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="Status" type="Label" parent="Top/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"NightMuted"
+autowrap_mode = 3
+
+[node name="Bottom" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -840.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_type_variation = &"BottomPanel"
+
+[node name="Box" type="VBoxContainer" parent="Bottom"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Description" type="Label" parent="Bottom/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"NightMuted"
+autowrap_mode = 3
+
+[node name="PeopleScroll" type="ScrollContainer" parent="Bottom/Box"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 124)
+layout_mode = 2
+vertical_scroll_mode = 0
+
+[node name="People" type="HBoxContainer" parent="Bottom/Box/PeopleScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="ActionsScroll" type="ScrollContainer" parent="Bottom/Box"]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="CityList" type="VBoxContainer" parent="Margin/Layout/CityScroll"]
+[node name="Actions" type="VBoxContainer" parent="Bottom/Box/ActionsScroll"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 20
+theme_override_constants/separation = 12
 
-[node name="BottomBar" type="HBoxContainer" parent="Margin/Layout"]
+[node name="Switcher" type="HBoxContainer" parent="Bottom/Box"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 16
-
-[node name="NotebookButton" type="Button" parent="Margin/Layout/BottomBar"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 120)
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="ToolsButton" type="Button" parent="Margin/Layout/BottomBar"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 120)
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="SettingsButton" type="Button" parent="Margin/Layout/BottomBar"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 120)
-layout_mode = 2
-size_flags_horizontal = 3
 
 [node name="Sweep" type="ColorRect" parent="."]
 unique_name_in_owner = true
 visible = false
 layout_mode = 0
 mouse_filter = 2
+
+[node name="MapView" parent="." instance=ExtResource("9_map")]
+unique_name_in_owner = true
+layout_mode = 1
 
 [node name="LoopEndView" parent="." instance=ExtResource("7_loop_end")]
 unique_name_in_owner = true

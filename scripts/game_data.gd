@@ -15,12 +15,18 @@ const FILES: Dictionary = {
 	"endings": "res://data/endings.json",
 	"letters": "res://data/letters.json",
 	"ui_text": "res://data/ui_text.json",
+	"scenes": "res://data/scenes.json",
 }
 
 const CLUE_TYPES: PackedStringArray = ["Horario", "Hecho", "Secreto", "Rumor", "Clave", "Final"]
 const INTERACTION_VERBS: PackedStringArray = ["forzar", "sellar", "actuar"]
 const FORCING_VERBS: PackedStringArray = ["forzar", "sellar"]
 const LETTER_STATES: PackedStringArray = ["bolsa", "entregada", "retenida", "desviada"]
+## Verbos de una orden de la simulación ("rutina" = el activo sigue su rutina).
+const COMMAND_VERBS: PackedStringArray = [
+	"rutina", "esperar", "observar", "seguir", "hablar", "interactuar", "leer", "retener", "entregar", "desviar",
+]
+const HOTSPOT_LINKS: PackedStringArray = ["clue", "letter", "event"]
 ## Banderas que activa el motor, no los datos.
 const ENGINE_FLAGS: PackedStringArray = ["akba_forzo"]
 const CONDITION_KEYS: PackedStringArray = [
@@ -66,6 +72,28 @@ var letter_ids: Array[String] = []
 var letters: Dictionary = {}
 var ui_text: Dictionary = {}
 
+# --- Escenas (data/scenes.json): solo presentación ---
+var canvas_size: Vector2 = Vector2.ZERO
+## {glide_ms, wait_glide_ms, hands_ms, drag_threshold_px}
+var scene_camera: Dictionary = {}
+var npc_height: float = 0.0
+## [{time, day, dusk, night}] pesos de los tres fondos por hora.
+var bg_bands: Array[Dictionary] = []
+## [{time, tint, light, light_strength, vignette, grain}] gradación por hora.
+var grading: Array[Dictionary] = []
+## protagonista -> {tint, vignette, overlay}: la «mirada» de cada uno.
+var looks: Dictionary = {}
+var hand_states: PackedStringArray = []
+## protagonista -> {verbo: estado de las manos}
+var hands_by_verb: Dictionary = {}
+## lugar -> {ground_y, entry, observe, default_person, stations, station_index, people, interactions, hotspots}
+var scenes: Dictionary = {}
+## id -> punto interactivo (con "place").
+var hotspots: Dictionary = {}
+## [{place, x, y}] y [[lugar, lugar]] del mapa de Much.
+var map_nodes: Array[Dictionary] = []
+var map_roads: Array = []
+
 ## Banderas que activa algún efecto (más las del motor) y las que algo comprueba.
 var set_flags: Dictionary = {}
 var checked_flags: Dictionary = {}
@@ -110,6 +138,7 @@ func load_sources(sources: Dictionary) -> bool:
 		_parse_events(sources.get("events"))
 		_parse_endings(sources.get("endings"))
 		_parse_questions(sources.get("clues"))
+		_parse_scenes(sources.get("scenes"))
 	if _problems.is_empty():
 		_check_cross_references()
 	if not _problems.is_empty():
@@ -165,6 +194,15 @@ func relevant_schedule(person: String) -> Array[Dictionary]:
 		if segment["schedule"] and segment["window_end"] > loop_start and segment["from"] < day_end:
 			segments.append(segment)
 	return segments
+
+
+func has_scene(place: String) -> bool:
+	return scenes.has(place)
+
+
+func station_x(place: String, station: String) -> float:
+	var scene: Dictionary = scenes[place]
+	return scene["stations"][scene["station_index"][station]]["x"]
 
 
 func default_ending() -> Dictionary:
@@ -490,7 +528,7 @@ func _parse_clues(source: Variant) -> void:
 	for i: int in list.size():
 		var raw: Variant = list[i]
 		var where := "clues.json, pista #%d" % i
-		if not _expect_dict(raw, where, ["id", "type", "title", "text", "person", "place", "time"]):
+		if not _expect_dict(raw, where, ["id", "type", "provisional", "title", "text", "person", "place", "time"]):
 			continue
 		var id := _id(raw.get("id"), where, clues)
 		if id == "":
@@ -508,7 +546,8 @@ func _parse_clues(source: Variant) -> void:
 		clue_ids.append(id)
 		clues[id] = {"id": id, "type": type, "title": _string(raw.get("title"), where + ", title"),
 				"text": _string(raw.get("text"), where + ", text"), "person": person, "place": place,
-				"time": _time(raw["time"], where + ", time") if raw.has("time") else -1}
+				"time": _time(raw["time"], where + ", time") if raw.has("time") else -1,
+				"provisional": raw.get("provisional", false) == true}
 
 
 func _parse_questions(source: Dictionary) -> void:
@@ -663,6 +702,237 @@ func _parse_endings(source: Variant) -> void:
 				"clue": clue, "default": is_default})
 	if defaults != 1:
 		_problems.append("endings.json: debe haber exactamente un final con \"default\": true (el de «Otra vez»).")
+
+
+## La presentación de los lugares: estaciones, puntos interactivos, gradación
+## por hora, las dos miradas, las manos y el mapa. No cambia ninguna regla.
+func _parse_scenes(source: Variant) -> void:
+	const WHERE := "scenes.json"
+	if not _expect_dict(source, WHERE, ["canvas", "camera", "npc_height", "bg_bands", "grading", "looks", "hands", "places", "map"]):
+		return
+	var canvas: Variant = source.get("canvas")
+	if _expect_dict(canvas, WHERE + ", canvas", ["width", "height"]):
+		canvas_size = Vector2(_int(canvas.get("width"), WHERE + ", canvas.width", 1), _int(canvas.get("height"), WHERE + ", canvas.height", 1))
+	var camera: Variant = source.get("camera")
+	if _expect_dict(camera, WHERE + ", camera", ["glide_ms", "wait_glide_ms", "hands_ms", "drag_threshold_px"]):
+		for key: String in ["glide_ms", "wait_glide_ms", "hands_ms", "drag_threshold_px"]:
+			scene_camera[key] = _int(camera.get(key), "%s, camera.%s" % [WHERE, key], 0)
+		if scene_camera["glide_ms"] > 400 or scene_camera["hands_ms"] > 200:
+			_problems.append(WHERE + ": camera.glide_ms no puede pasar de 400 ni camera.hands_ms de 200.")
+	npc_height = _int(source.get("npc_height"), WHERE + ", npc_height", 1)
+	bg_bands = _keyframes(source.get("bg_bands"), WHERE + ", bg_bands", ["day", "dusk", "night"], [])
+	grading = _keyframes(source.get("grading"), WHERE + ", grading", ["light_strength", "vignette", "grain"], ["tint", "light"])
+	var looks_data: Variant = source.get("looks")
+	if _expect_dict(looks_data, WHERE + ", looks", protagonist_ids):
+		for actor: String in protagonist_ids:
+			var look: Variant = looks_data.get(actor)
+			var look_where := "%s, looks.%s" % [WHERE, actor]
+			if _expect_dict(look, look_where, ["tint", "vignette", "overlay"]):
+				looks[actor] = {"tint": _color(look.get("tint"), look_where + ".tint"),
+						"vignette": float(look.get("vignette", 0.0)), "overlay": look.get("overlay", false) == true}
+			else:
+				looks[actor] = {"tint": Color.WHITE, "vignette": 0.0, "overlay": false}
+	_parse_hands(source.get("hands"), WHERE + ", hands")
+	var places: Variant = source.get("places")
+	if not places is Dictionary:
+		_problems.append(WHERE + ": \"places\" debe ser un objeto {lugar: escena}.")
+	else:
+		for place: Variant in places:
+			if not locations.has(place) or not locations[place]["visible"]:
+				_problems.append("%s: \"%s\" no es un lugar visible." % [WHERE, place])
+				continue
+			_parse_place_scene(places[place], place, "%s, \"%s\"" % [WHERE, place])
+		for place: String in visible_location_ids():
+			if not scenes.has(place):
+				_problems.append("%s: falta la escena del lugar visible \"%s\"." % [WHERE, place])
+	_parse_map(source.get("map"), WHERE + ", map")
+
+
+## Fotogramas clave por hora (en orden), con números en `numbers` y colores en `colors`.
+func _keyframes(source: Variant, where: String, numbers: Array, colors: Array) -> Array[Dictionary]:
+	var frames: Array[Dictionary] = []
+	if not source is Array or source.size() < 2:
+		_problems.append(where + " debe ser una lista de al menos dos horas.")
+		return frames
+	var previous := -1
+	for i: int in source.size():
+		var frame_where := "%s #%d" % [where, i]
+		if not _expect_dict(source[i], frame_where, ["time"] + numbers + colors):
+			continue
+		var frame: Dictionary = {"time": _time(source[i].get("time"), frame_where + ", time")}
+		if frame["time"] <= previous:
+			_problems.append(frame_where + ": las horas deben ir en orden creciente.")
+		previous = frame["time"]
+		for key: String in numbers:
+			var value: Variant = source[i].get(key)
+			if not (value is int or value is float) or float(value) < 0.0 or float(value) > 1.0:
+				_problems.append("%s: \"%s\" debe ser un número entre 0 y 1." % [frame_where, key])
+				value = 0.0
+			frame[key] = float(value)
+		for key: String in colors:
+			frame[key] = _color(source[i].get(key), "%s, %s" % [frame_where, key])
+		frames.append(frame)
+	return frames
+
+
+func _parse_hands(source: Variant, where: String) -> void:
+	if not _expect_dict(source, where, ["states", "by_verb"]):
+		return
+	var states: Variant = source.get("states")
+	if not states is Array or states.is_empty() or not _all_filled(states):
+		_problems.append(where + ": \"states\" debe ser una lista de nombres.")
+		return
+	hand_states = PackedStringArray(states)
+	var by_verb: Variant = source.get("by_verb")
+	if not _expect_dict(by_verb, where + ", by_verb", protagonist_ids):
+		return
+	for actor: String in protagonist_ids:
+		var mapping: Variant = by_verb.get(actor)
+		var actor_where := "%s, by_verb.%s" % [where, actor]
+		if not _expect_dict(mapping, actor_where, Array(COMMAND_VERBS)):
+			continue
+		for verb: String in COMMAND_VERBS:
+			if not hand_states.has(mapping.get(verb, "")):
+				_problems.append("%s: el verbo \"%s\" necesita un estado de manos de %s." % [actor_where, verb, hand_states])
+		hands_by_verb[actor] = mapping.duplicate()
+
+
+func _parse_place_scene(source: Variant, place: String, where: String) -> void:
+	if not _expect_dict(source, where, ["ground_y", "entry", "observe", "default_person", "stations", "people", "interactions", "hotspots"]):
+		return
+	var scene: Dictionary = {"ground_y": float(_int(source.get("ground_y"), where + ", ground_y", 0)),
+			"stations": [], "station_index": {}, "people": {}, "interactions": {}, "hotspots": []}
+	var stations: Variant = source.get("stations")
+	if not stations is Array or stations.size() < 4 or stations.size() > 5:
+		_problems.append(where + ": \"stations\" debe tener entre 4 y 5 estaciones.")
+		return
+	var previous_x := -1.0
+	for i: int in stations.size():
+		var station_where := "%s, estación #%d" % [where, i]
+		if not _expect_dict(stations[i], station_where, ["id", "x", "name"]):
+			continue
+		var id := _id(stations[i].get("id"), station_where, scene["station_index"])
+		var x := float(_int(stations[i].get("x"), station_where + ", x", 0))
+		if x <= previous_x or x > canvas_size.x:
+			_problems.append(station_where + ": las estaciones van de izquierda a derecha y dentro del lienzo.")
+		previous_x = x
+		if id != "":
+			scene["station_index"][id] = scene["stations"].size()
+			scene["stations"].append({"id": id, "x": x, "name": _string(stations[i].get("name"), station_where + ", name")})
+	for key: String in ["entry", "observe", "default_person"]:
+		scene[key] = _station_ref(scene, source.get(key), "%s, %s" % [where, key])
+	var people_map: Variant = source.get("people")
+	if not people_map is Dictionary:
+		_problems.append(where + ": \"people\" debe ser un objeto {persona: estación}.")
+	else:
+		for person: Variant in people_map:
+			if not people.has(person) or is_protagonist(person):
+				_problems.append("%s, people: \"%s\" no es un habitante." % [where, person])
+			scene["people"][person] = _station_ref(scene, people_map[person], "%s, people.%s" % [where, person])
+	var interaction_map: Variant = source.get("interactions")
+	if not interaction_map is Dictionary:
+		_problems.append(where + ": \"interactions\" debe ser un objeto {interacción: estación}.")
+	else:
+		for id: Variant in interaction_map:
+			if not interactions.has(id) or interactions[id]["place"] != place:
+				_problems.append("%s, interactions: \"%s\" no es una interacción de este lugar." % [where, id])
+			scene["interactions"][id] = _station_ref(scene, interaction_map[id], "%s, interactions.%s" % [where, id])
+		for id: String in interactions:
+			if interactions[id]["place"] == place and not interaction_map.has(id):
+				_problems.append("%s: falta la estación de la interacción \"%s\"." % [where, id])
+	var hotspot_list: Variant = source.get("hotspots")
+	if not hotspot_list is Array:
+		_problems.append(where + ": \"hotspots\" debe ser una lista.")
+	else:
+		for i: int in hotspot_list.size():
+			var hotspot := _parse_hotspot(hotspot_list[i], place, scene, "%s, punto #%d" % [where, i])
+			if not hotspot.is_empty():
+				scene["hotspots"].append(hotspot)
+				hotspots[hotspot["id"]] = hotspot
+	scenes[place] = scene
+
+
+func _parse_hotspot(raw: Variant, place: String, scene: Dictionary, where: String) -> Dictionary:
+	if not _expect_dict(raw, where, ["id", "station", "x", "y", "look", "hour_from", "hour_to", "action", "link", "label", "fissure"]):
+		return {}
+	var id := _id(raw.get("id"), where, hotspots)
+	if id == "":
+		return {}
+	where = "scenes.json, punto \"%s\"" % id
+	var look: String = raw.get("look", "")
+	if look != "both" and not protagonist_ids.has(look):
+		_problems.append("%s: \"look\" debe ser un protagonista o \"both\"." % where)
+	var fissure: bool = raw.get("fissure", false) == true
+	if fissure and look != "akba":
+		_problems.append(where + ": una fisura solo se ve con la mirada de Akba.")
+	if raw.get("action") != "observar":
+		_problems.append(where + ": \"action\" debe ser \"observar\".")
+	var x := float(_int(raw.get("x"), where + ", x", 0))
+	var y := float(_int(raw.get("y"), where + ", y", 0))
+	if x > canvas_size.x or y > canvas_size.y:
+		_problems.append(where + ": la posición cae fuera del lienzo.")
+	var hour_from := _time(raw.get("hour_from"), where + ", hour_from")
+	var hour_to := _time(raw.get("hour_to"), where + ", hour_to")
+	if hour_from >= hour_to:
+		_problems.append(where + ": \"hour_from\" debe ser anterior a \"hour_to\".")
+	var link: Variant = raw.get("link")
+	var link_kind := ""
+	var link_id := ""
+	if not link is Dictionary or link.size() != 1 or not HOTSPOT_LINKS.has(link.keys()[0]):
+		_problems.append("%s: \"link\" debe ser un objeto con una sola clave de %s." % [where, HOTSPOT_LINKS])
+	else:
+		link_kind = link.keys()[0]
+		link_id = str(link[link_kind])
+		var exists := false
+		match link_kind:
+			"clue":
+				exists = clues.has(link_id)
+			"letter":
+				exists = letters.has(link_id)
+			"event":
+				exists = events.any(func(event: Dictionary) -> bool: return event["id"] == link_id)
+		if not exists:
+			_problems.append("%s: %s desconocido \"%s\"." % [where, link_kind, link_id])
+	return {"id": id, "place": place, "station": _station_ref(scene, raw.get("station"), where + ", station"),
+			"x": x, "y": y, "look": look, "from": hour_from, "to": hour_to, "link_kind": link_kind, "link_id": link_id,
+			"label": _string(raw.get("label"), where + ", label"), "fissure": fissure}
+
+
+func _station_ref(scene: Dictionary, value: Variant, where: String) -> String:
+	if not value is String or not scene["station_index"].has(value):
+		_problems.append("%s: estación desconocida \"%s\"." % [where, value])
+		return ""
+	return value
+
+
+func _parse_map(source: Variant, where: String) -> void:
+	if not _expect_dict(source, where, ["nodes", "roads"]):
+		return
+	var placed: Dictionary = {}
+	for i: int in source.get("nodes", []).size():
+		var raw: Variant = source["nodes"][i]
+		var node_where := "%s, nodo #%d" % [where, i]
+		if not _expect_dict(raw, node_where, ["place", "x", "y"]):
+			continue
+		var place: String = raw.get("place", "")
+		if not locations.has(place) or placed.has(place):
+			_problems.append("%s: lugar desconocido o repetido \"%s\"." % [node_where, place])
+			continue
+		var x: Variant = raw.get("x")
+		var y: Variant = raw.get("y")
+		if not (x is float or x is int) or not (y is float or y is int) or x < 0 or x > 1 or y < 0 or y > 1:
+			_problems.append(node_where + ": \"x\" e \"y\" van de 0 a 1.")
+			continue
+		placed[place] = true
+		map_nodes.append({"place": place, "x": float(x), "y": float(y)})
+	for place: String in visible_location_ids():
+		if not placed.has(place):
+			_problems.append("%s: falta el nodo del lugar visible \"%s\"." % [where, place])
+	for road: Variant in source.get("roads", []):
+		if not road is Array or road.size() != 2 or not placed.has(road[0]) or not placed.has(road[1]):
+			_problems.append("%s: cada calle une dos nodos del mapa (%s)." % [where, road])
+			continue
+		map_roads.append([road[0], road[1]])
 
 
 func _parse_variants(source: Variant, where: String, with_effects: bool) -> Array[Dictionary]:
@@ -930,3 +1200,14 @@ func _clear() -> void:
 	referenced_clues.clear()
 	was_at_refs.clear()
 	_granted_clues.clear()
+	canvas_size = Vector2.ZERO
+	scene_camera.clear()
+	bg_bands.clear()
+	grading.clear()
+	looks.clear()
+	hand_states = []
+	hands_by_verb.clear()
+	scenes.clear()
+	hotspots.clear()
+	map_nodes.clear()
+	map_roads.clear()

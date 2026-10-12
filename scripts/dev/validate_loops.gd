@@ -30,6 +30,7 @@ func _run() -> void:
 	var result: Dictionary = report["result"]
 	print("Pasadas: %d · estados explorados: %d · pistas alcanzables: %d de %d" % [result["passes"], result["states"],
 			result["clues"].size(), data.clue_ids.size()])
+	print("Pistas que revela algún punto interactivo: %d (%d puntos)" % [result["hotspot_clues"].size(), data.hotspots.size()])
 	for ending: String in result["endings"]:
 		print("Final «%s»: alcanzable desde la pasada %d" % [ending, result["endings"][ending]])
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("res://build"))

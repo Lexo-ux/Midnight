@@ -15,6 +15,8 @@ const TEST_MODULES: Array[String] = [
 	"res://scripts/dev/tests/test_save_load.gd",
 	"res://scripts/dev/tests/test_walkthroughs.gd",
 	"res://scripts/dev/tests/test_loop_validator.gd",
+	"res://scripts/dev/tests/test_scenes.gd",
+	"res://scripts/dev/tests/test_art_pipeline.gd",
 	"res://scripts/dev/tests/test_softlock_fuzz.gd",
 ]
 
