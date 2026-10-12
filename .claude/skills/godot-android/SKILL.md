@@ -11,7 +11,7 @@ Rutas de este equipo (ver `%APPDATA%\Godot\editor_settings-4.7.tres`):
 - JDK: `C:\Program Files\Android\Android Studio\jbr`
 - Plantillas de exportación: `%APPDATA%\Godot\export_templates\4.7.2.stable`
 - AVD disponible: `Medium_Phone_API_37.0`
-- Editor de Godot: `$env:GODOT`, definido en `.claude/settings.json` como `C:\Users\alecx\Downloads\Godot_v4.7.2-stable_win64_console.exe`. Usar siempre la versión `_console.exe`, porque el `.exe` normal no escribe nada en la terminal.
+- Editor de Godot: `$env:GODOT`, definido en `.claude/settings.json` (local, no se versiona) con la ruta a tu `Godot_v4.7.x-stable_win64_console.exe`. Usar siempre la versión `_console.exe`, porque el `.exe` normal no escribe nada en la terminal.
 
 El preset de exportación se llama `Android` (`export_presets.cfg`), arm64-v8a, sin gradle build. No editar `export_presets.cfg` ni `android/` salvo que la tarea lo pida.
 
