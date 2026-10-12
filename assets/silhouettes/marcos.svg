@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- Silueta provisional para el estudio. Convención: cuerpo en rojo puro (#ff0000),
+       rasgo fijo en verde puro (#00ff00); el juego los tiñe según el Velo. -->
+  <!-- Marcos: abrigo largo y farol -->
+  <circle cx="116" cy="62" r="30" fill="#ff0000"/>
+  <path d="M72 256 L86 128 C92 108 104 100 116 100 C128 100 140 108 146 128 L170 256 Z" fill="#ff0000"/>
+  <path d="M60 256 L80 150 L92 150 L84 256 Z" fill="#ff0000"/>
+  <line x1="190" y1="128" x2="190" y2="160" stroke="#00ff00" stroke-width="8"/>
+  <rect x="172" y="158" width="36" height="50" rx="6" fill="#00ff00"/>
+  <path d="M168 158 L212 158 L190 140 Z" fill="#00ff00"/>
+</svg>

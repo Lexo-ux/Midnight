@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- Silueta provisional para el estudio. Convención: cuerpo en rojo puro (#ff0000),
+       rasgo fijo en verde puro (#00ff00); el juego los tiñe según el Velo. -->
+  <!-- Akba (provisional): abrigo con capucha y farolillo de noche -->
+  <path d="M84 120 C78 52 178 52 172 120 C168 132 88 132 84 120 Z" fill="#ff0000"/>
+  <path d="M56 256 C56 172 84 112 128 112 C172 112 200 172 200 256 Z" fill="#ff0000"/>
+  <line x1="44" y1="150" x2="44" y2="178" stroke="#00ff00" stroke-width="6"/>
+  <circle cx="44" cy="196" r="20" fill="#00ff00"/>
+</svg>

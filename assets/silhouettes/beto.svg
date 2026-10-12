@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- Silueta provisional para el estudio. Convención: cuerpo en rojo puro (#ff0000),
+       rasgo fijo en verde puro (#00ff00); el juego los tiñe según el Velo. -->
+  <!-- Beto: fajo de periódicos y gorra -->
+  <circle cx="124" cy="82" r="34" fill="#ff0000"/>
+  <path d="M58 256 C58 180 86 132 124 132 C162 132 190 180 190 256 Z" fill="#ff0000"/>
+  <path d="M88 76 C88 40 160 40 160 76 Z" fill="#00ff00"/>
+  <rect x="150" y="66" width="44" height="12" rx="6" fill="#00ff00"/>
+  <rect x="22" y="150" width="70" height="20" rx="3" fill="#00ff00"/>
+  <rect x="18" y="174" width="74" height="20" rx="3" fill="#00ff00"/>
+  <rect x="24" y="198" width="68" height="20" rx="3" fill="#00ff00"/>
+</svg>

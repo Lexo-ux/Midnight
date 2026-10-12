@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- Silueta provisional para el estudio. Convención: cuerpo en rojo puro (#ff0000),
+       rasgo fijo en verde puro (#00ff00); el juego los tiñe según el Velo. -->
+  <!-- Ruth: lupa de relojero en la frente -->
+  <circle cx="128" cy="78" r="36" fill="#ff0000"/>
+  <path d="M60 256 C60 178 88 128 128 128 C168 128 196 178 196 256 Z" fill="#ff0000"/>
+  <rect x="94" y="54" width="68" height="10" rx="5" fill="#00ff00"/>
+  <rect x="146" y="40" width="38" height="34" rx="8" fill="#00ff00"/>
+  <circle cx="186" cy="57" r="20" fill="#00ff00"/>
+</svg>

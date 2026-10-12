@@ -1,0 +1,47 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/switch_button.gd" id="1_script"]
+[ext_resource type="Script" path="res://scripts/protagonist_icon.gd" id="2_icon"]
+
+[node name="SwitchButton" type="Button"]
+custom_minimum_size = Vector2(0, 160)
+size_flags_horizontal = 3
+script = ExtResource("1_script")
+
+[node name="Row" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_right = -16.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+
+[node name="Icon" type="Control" parent="Row"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(84, 84)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("2_icon")
+
+[node name="Texts" type="VBoxContainer" parent="Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="NameLabel" type="Label" parent="Row/Texts"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"SwitchName"
+
+[node name="StatusLabel" type="Label" parent="Row/Texts"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"SwitchStatus"
+text_overrun_behavior = 3

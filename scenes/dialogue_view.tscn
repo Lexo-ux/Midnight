@@ -1,0 +1,75 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/dialogue_view.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://scenes/silhouette.tscn" id="2_silhouette"]
+
+[node name="DialogueView" type="Control"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="Dim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.35)
+
+[node name="Sheet" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = -760.0
+offset_right = -24.0
+offset_bottom = -24.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_type_variation = &"Paper"
+
+[node name="Box" type="VBoxContainer" parent="Sheet"]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="Speaker Row" type="HBoxContainer" parent="Sheet/Box"]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="SpeakerSilhouette" parent="Sheet/Box/Speaker Row" instance=ExtResource("2_silhouette")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 200)
+layout_mode = 2
+
+[node name="Speaker" type="Label" parent="Sheet/Box/Speaker Row"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_type_variation = &"PaperTitle"
+
+[node name="Line" type="Label" parent="Sheet/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_type_variation = &"PaperLabel"
+autowrap_mode = 3
+
+[node name="NewClues" type="Label" parent="Sheet/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"PaperLabel"
+autowrap_mode = 3
+
+[node name="Next" type="Button" parent="Sheet/Box"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
