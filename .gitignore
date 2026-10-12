@@ -1,0 +1,34 @@
+# Godot 4
+.godot/
+.import/
+*.translation
+
+# Salidas locales (capturas, grafo del validador, APK de prueba)
+build/
+
+# Android: la plantilla de Gradle (android/) la regenera Godot con
+# Proyecto > Instalar plantilla de compilación de Android. No se versiona.
+/android/
+android/build/
+*.apk
+*.aab
+*.idsig
+
+# Firma y credenciales (nunca al repositorio)
+*.keystore
+*.jks
+local.properties
+.android/
+export_credentials.cfg
+
+# Configuración local de Claude Code (rutas de esta máquina)
+.claude/settings.json
+.claude/settings.local.json
+
+# Varios
+*.tmp
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
