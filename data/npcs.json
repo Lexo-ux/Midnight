@@ -1,0 +1,351 @@
+{
+  "people": [
+    {
+      "id": "sazil",
+      "name": "Sazil",
+      "protagonist": true,
+      "icon": "sol",
+      "trait": "bolsa de correo y gorra (provisional)",
+      "silhouette_path": "res://assets/silhouettes/sazil.svg",
+      "colors": { "body": "#d98b3a", "trait": "#7a4b23" },
+      "delivers_letters": true,
+      "routine": [
+        { "id": "sazil_casa_manana", "from": "06:00", "place": "casa_sazil" },
+        { "id": "sazil_correos", "from": "07:00", "place": "correos" },
+        { "id": "sazil_mercado", "from": "13:30", "place": "mercado" },
+        { "id": "sazil_plaza", "from": "15:00", "place": "plaza" },
+        { "id": "sazil_vuelta", "from": "16:00", "place": "correos" },
+        { "id": "sazil_casa", "from": "17:00", "place": "casa_sazil" }
+      ]
+    },
+    {
+      "id": "akba",
+      "name": "Akba",
+      "protagonist": true,
+      "icon": "luna",
+      "trait": "abrigo con capucha y farolillo de noche (provisional)",
+      "silhouette_path": "res://assets/silhouettes/akba.svg",
+      "colors": { "body": "#3b3f8f", "trait": "#c9c3ff" },
+      "disabled_if": "akba_atrapado",
+      "routine": [
+        { "id": "akba_duerme", "from": "06:00", "place": "observatorio" },
+        { "id": "akba_guardia", "from": "18:00", "place": "observatorio" },
+        { "id": "akba_cuartel", "from": "00:00", "place": "cuartel", "if": "akba_atrapado", "override": true }
+      ]
+    },
+    {
+      "id": "ruth",
+      "name": "Ruth",
+      "trait": "lupa de relojero en la frente",
+      "silhouette_path": "res://assets/silhouettes/ruth.svg",
+      "colors": { "body": "#6b5a7a", "trait": "#d8b45a" },
+      "velo": { "face_path": null, "portrait_path": null, "credit": null },
+      "routine": [
+        { "id": "ruth_casa_manana", "from": "06:00", "place": "casa_ruth", "schedule": true, "label": "En casa, antes de abrir." },
+        { "id": "ruth_taller", "from": "08:00", "place": "relojeria", "schedule": true, "label": "En la relojería, hasta las 16:00." },
+        { "id": "ruth_tarde", "from": "16:00", "place": "casa_ruth", "schedule": true, "label": "En casa, sola con sus relojes de bolsillo, hasta las 22:00." },
+        { "id": "ruth_observatorio", "from": "22:00", "place": "observatorio", "schedule": true, "label": "Sube al Observatorio y no baja hasta medianoche." }
+      ],
+      "observe": [
+        { "actor": "sazil", "lines": [ { "speaker": "sazil", "text": "Lupa en la frente, manos de cirujana. Murmura algo cada vez que un reloj se atrasa." } ] },
+        { "actor": "akba", "lines": [ { "speaker": "akba", "text": "Su lupa brilla con una luz que no es de aquí. Ella también se acuerda de algo." } ] }
+      ],
+      "talks": [
+        {
+          "id": "ruth_hola",
+          "actor": "sazil",
+          "label": "Saludar a Ruth",
+          "lines": [
+            { "speaker": "ruth", "text": "Sazil. Las dos y diez, como siempre." },
+            { "speaker": "sazil", "text": "¿Como siempre? Si hoy he venido antes." },
+            { "speaker": "ruth", "text": "Ah, ¿sí? Será que los relojes me mienten. Otra vez." }
+          ],
+          "effects": { "clues": [ "hecho_ruth_otra_vez" ] }
+        },
+        {
+          "id": "ruth_tachado",
+          "actor": "sazil",
+          "label": "Preguntarle por la línea tachada",
+          "if": { "clue": "secreto_pedido_tachado" },
+          "lines": [
+            { "speaker": "sazil", "text": "Ruth, en tu pedido hay una línea tachada: «no vengas tú»." },
+            { "speaker": "ruth", "text": "¿Eso puse?" },
+            { "speaker": "ruth", "text": "Lo escribo cada vez y cada vez lo tacho. No sé por qué. Es como estornudar." }
+          ],
+          "effects": { "clues": [ "hecho_ruth_otra_vez" ] }
+        },
+        {
+          "id": "ruth_akba",
+          "actor": "akba",
+          "label": "Preguntarle por el patio",
+          "lines": [
+            { "speaker": "ruth", "text": "Usted no tiene cara de traerme un reloj." },
+            { "speaker": "akba", "text": "No. Vengo por el patio." },
+            { "speaker": "ruth", "text": "El patio está cerrado. Siempre, a partir de las tres. No pregunte por qué, que no lo sé." }
+          ],
+          "effects": { "clues": [ "rumor_patio_tres" ] }
+        }
+      ]
+    },
+    {
+      "id": "tun",
+      "name": "Tun",
+      "trait": "caja de madera bajo el brazo",
+      "silhouette_path": "res://assets/silhouettes/tun.svg",
+      "colors": { "body": "#3f7d6b", "trait": "#a8743a" },
+      "velo": { "face_path": null, "portrait_path": null, "credit": null },
+      "routine": [
+        { "id": "tun_casa_manana", "from": "06:00", "place": "casa_sazil", "schedule": true, "label": "En casa, antes de abrir." },
+        { "id": "tun_taller", "from": "08:00", "place": "relojeria", "schedule": true, "label": "Aprendiz en la relojería." },
+        { "id": "tun_caja", "from": "12:00", "place": "observatorio", "schedule": true, "label": "Lleva una caja al Observatorio." },
+        { "id": "tun_taller_tarde", "from": "12:30", "place": "relojeria", "schedule": true, "label": "Vuelve a la relojería, hasta las 16:00." },
+        { "id": "tun_casa", "from": "16:00", "place": "casa_sazil", "schedule": true, "label": "En casa, pasando a limpio su libreta, hasta las 20:00." },
+        { "id": "tun_plaza", "from": "20:00", "place": "plaza", "schedule": true, "label": "Va a la fiesta de la plaza." },
+        { "id": "tun_se_queda", "from": "20:00", "place": "casa_sazil", "if": "tun_se_queda", "override": true },
+        { "id": "tun_curado", "from": "21:30", "place": "casa_sazil", "if": "tun_herido", "override": true }
+      ],
+      "observe": [
+        { "actor": "sazil", "lines": [ { "speaker": "sazil", "text": "Mi hermano lo apunta todo en su libreta. Hasta mi cara de no entender nada." } ] },
+        { "actor": "akba", "lines": [ { "speaker": "akba", "text": "El chico de la caja. La libreta le pesa más que la caja." } ] }
+      ],
+      "talks": [
+        {
+          "id": "tun_hola",
+          "actor": "sazil",
+          "label": "Hablar con Tun",
+          "lines": [
+            { "speaker": "tun", "text": "¡Sazil! Anoto: 14:00, visita de mi persona favorita con bolsa." },
+            { "speaker": "tun", "text": "A las ocho me voy a la fiesta de la plaza. Hay farolillos y Beto grita gratis." }
+          ],
+          "effects": { "clues": [ "horario_tun_plaza" ] }
+        },
+        {
+          "id": "tun_libreta",
+          "actor": "sazil",
+          "label": "Preguntarle por el «otra vez» de Ruth",
+          "if": { "clue": "hecho_ruth_otra_vez" },
+          "lines": [
+            { "speaker": "tun", "text": "¿Lo de «otra vez»? Lo tengo apuntado. Mira." },
+            { "speaker": "tun", "text": "Cada día dice las mismas frases, a la misma hora. Como si leyera un guion que nadie le dio." },
+            { "speaker": "sazil", "text": "¿Y por qué lo apuntas?" },
+            { "speaker": "tun", "text": "Porque alguien tiene que acordarse. Y a mí se me olvida todo menos lo que escribo." }
+          ],
+          "effects": { "clues": [ "secreto_libreta_tun" ] }
+        },
+        {
+          "id": "tun_quedate",
+          "actor": "sazil",
+          "label": "Pedirle que esta noche no vaya a la plaza",
+          "if": { "ALL": [ { "time_to": "21:30" }, { "clue": "hecho_tun_herido" }, { "NOT": "tun_se_queda" } ] },
+          "lines": [
+            { "speaker": "sazil", "text": "Esta noche quédate en casa. Por favor." },
+            { "speaker": "tun", "text": "¿Y perderme los farolillos? ¿Por qué?" },
+            { "speaker": "sazil", "text": "Porque me lo pide el estómago." },
+            { "speaker": "tun", "text": "Vale. Pero lo apunto como deuda. Con intereses." }
+          ],
+          "effects": { "set": [ "tun_se_queda" ] }
+        },
+        {
+          "id": "tun_akba",
+          "actor": "akba",
+          "label": "Preguntarle por la caja",
+          "lines": [
+            { "speaker": "tun", "text": "¿Usted es el vigilante del Observatorio? Le llevé una caja a las doce." },
+            { "speaker": "tun", "text": "Pesaba como un secreto. No la abrí. Bueno, un poco." }
+          ],
+          "effects": { "clues": [ "horario_tun_caja" ] }
+        }
+      ]
+    },
+    {
+      "id": "lina",
+      "name": "Lina",
+      "trait": "canasta ancha",
+      "silhouette_path": "res://assets/silhouettes/lina.svg",
+      "colors": { "body": "#b5543f", "trait": "#e3b46a" },
+      "velo": { "face_path": null, "portrait_path": null, "credit": null },
+      "routine": [
+        { "id": "lina_casa_manana", "from": "06:00", "place": "casa_lina", "schedule": true, "label": "En casa, con el horno." },
+        { "id": "lina_mercado", "from": "07:00", "place": "mercado", "schedule": true, "label": "En su puesto del mercado, hasta las 15:00." },
+        {
+          "id": "lina_pan", "from": "15:00", "place": "relojeria", "schedule": true,
+          "label": "Lleva pan a la relojería. Y no vuelve.",
+          "if": { "NOT": [ { "letter": { "id": "orden_lina", "state": "retenida" } }, { "letter": { "id": "orden_lina", "state": "desviada" } }, "lina_no_ira" ] }
+        },
+        { "id": "lina_vuelta", "from": "15:30", "place": "casa_lina" },
+        { "id": "lina_fiesta", "from": "20:00", "place": "plaza" },
+        { "id": "lina_perdida", "from": "15:30", "place": "umbral", "if": "lina_perdida", "override": true }
+      ],
+      "observe": [
+        { "actor": "sazil", "lines": [ { "speaker": "sazil", "text": "Harina hasta los codos y prisa hasta las cejas. Regaña a la masa con cariño." } ] },
+        { "actor": "akba", "lines": [ { "speaker": "akba", "text": "Nada raro en ella. Pan, prisa y una pena vieja muy bien doblada." } ] }
+      ],
+      "talks": [
+        {
+          "id": "lina_hola",
+          "actor": "sazil",
+          "label": "Hablar con Lina",
+          "lines": [
+            { "speaker": "lina", "text": "¡Sazil! Llegas justo: esta masa necesita público." },
+            { "speaker": "lina", "text": "Tú, quieta, que a las tres te vas a la relojería con Ruth. Y no me pongas esa cara." },
+            { "speaker": "lina", "text": "Quien me carga la canasta tiene mi voto, ¿eh? Lo digo por nada." }
+          ],
+          "effects": { "clues": [ "horario_lina_pan", "clave_canasta" ] }
+        },
+        {
+          "id": "lina_canasta",
+          "actor": "sazil",
+          "label": "Ayudarle con la canasta",
+          "if": { "ALL": [ { "time_to": "15:00" }, { "clue": "clave_canasta" }, { "NOT": "lina_confia" } ] },
+          "lines": [
+            { "speaker": "sazil", "text": "Trae, que te llevo la canasta." },
+            { "speaker": "lina", "text": "Mira qué servicio. Si me lo pidieras, hoy te diría que sí a cualquier cosa." }
+          ],
+          "effects": { "set": [ "lina_confia" ] }
+        },
+        {
+          "id": "lina_no_vayas",
+          "actor": "sazil",
+          "label": "Pedirle que hoy no lleve el pan al taller",
+          "if": { "ALL": [ { "time_to": "15:00" }, "lina_confia", { "NOT": "lina_no_ira" }, { "ANY": [ { "clue": "hecho_lina_desaparece" }, { "clue": "hecho_fisura_patio" } ] } ] },
+          "lines": [
+            { "speaker": "sazil", "text": "Hoy no lleves el pan a la relojería. No me preguntes. Por favor." },
+            { "speaker": "lina", "text": "¿Y quién alimenta a Ruth? ¿Sus relojes?" },
+            { "speaker": "lina", "text": "Bueno. Por ti. Se lo llevo mañana. Aunque mañana, no sé por qué, me suena raro." }
+          ],
+          "effects": { "set": [ "lina_no_ira" ] }
+        },
+        {
+          "id": "lina_akba",
+          "actor": "akba",
+          "label": "Hablar con Lina",
+          "lines": [
+            { "speaker": "lina", "text": "Usted es el del Observatorio. ¿Duerme algo?" },
+            { "speaker": "akba", "text": "De día." },
+            { "speaker": "lina", "text": "Pues coma pan. Tiene cara de luna menguante." }
+          ],
+          "effects": { "clues": [ "horario_lina_mercado" ] }
+        }
+      ]
+    },
+    {
+      "id": "marcos",
+      "name": "Marcos",
+      "trait": "abrigo largo y farol",
+      "silhouette_path": "res://assets/silhouettes/marcos.svg",
+      "colors": { "body": "#2f3b45", "trait": "#e0a23a" },
+      "velo": { "face_path": null, "portrait_path": null, "credit": null },
+      "routine": [
+        { "id": "marcos_viaje", "from": "06:00", "place": "tren" },
+        { "id": "marcos_tren", "from": "14:00", "place": "plaza", "schedule": true, "label": "Llega en el tren y cruza la plaza." },
+        { "id": "marcos_mercado", "from": "14:30", "place": "mercado", "schedule": true, "label": "Hace preguntas en el mercado, hasta las 16:00." },
+        { "id": "marcos_posada", "from": "16:00", "place": "posada", "schedule": true, "label": "En la posada, limpiando el farol, hasta las 21:00." },
+        { "id": "marcos_patrulla", "from": "21:00", "place": "plaza", "schedule": true, "label": "Patrulla la plaza." },
+        { "id": "marcos_adelanta", "from": "19:00", "place": "plaza", "if": { "rastro_min": "medio" } },
+        { "id": "marcos_caza", "from": "14:00", "follow": "akba", "if": { "ANY": [ { "rastro_min": "alto" }, "marcos_busca_akba" ] }, "override": true },
+        { "id": "marcos_cuartel", "from": "19:30", "place": "cuartel", "if": { "ANY": [ "beto_detenido", "akba_atrapado" ] }, "override": true }
+      ],
+      "observe": [
+        {
+          "actor": "sazil",
+          "lines": [ { "speaker": "sazil", "text": "Abrigo largo, farol apagado de día. Del bolsillo asoma un billete del tren de las 14:00." } ],
+          "clues": [ "hecho_llegada_marcos" ]
+        },
+        {
+          "actor": "akba",
+          "lines": [ { "speaker": "akba", "text": "Su farol no alumbra. Busca." } ],
+          "clues": [ "rumor_cazadores" ]
+        }
+      ],
+      "talks": [
+        {
+          "id": "marcos_sazil",
+          "actor": "sazil",
+          "label": "Hablar con Marcos",
+          "lines": [
+            { "speaker": "marcos", "text": "Buenas tardes. ¿Usted reparte por aquí? Entonces sabrá quién vende periódicos que aciertan." },
+            { "speaker": "sazil", "text": "¿Beto? Acierta lo mismo que el horóscopo." },
+            { "speaker": "marcos", "text": "Eso dicen todos. Hasta que deja de ser broma. Gracias, ha sido muy amable." }
+          ],
+          "effects": { "clues": [ "hecho_marcos_sospecha", "hecho_llegada_marcos" ] }
+        },
+        {
+          "id": "marcos_akba",
+          "actor": "akba",
+          "label": "Hablar con Marcos",
+          "lines": [
+            { "speaker": "marcos", "text": "Usted huele a madrugada." },
+            { "speaker": "akba", "text": "Trabajo de noche." },
+            { "speaker": "marcos", "text": "Lo sé. Yo también. Que tenga buena tarde." }
+          ],
+          "effects": { "clues": [ "rumor_cazadores" ] }
+        }
+      ]
+    },
+    {
+      "id": "beto",
+      "name": "Beto",
+      "trait": "fajo de periódicos y gorra",
+      "silhouette_path": "res://assets/silhouettes/beto.svg",
+      "colors": { "body": "#7a6a3a", "trait": "#e8e2cf" },
+      "velo": { "face_path": null, "portrait_path": null, "credit": null },
+      "routine": [
+        { "id": "beto_casa_manana", "from": "06:00", "place": "casa_beto" },
+        { "id": "beto_plaza_manana", "from": "07:00", "place": "plaza", "schedule": true, "label": "Vende en la plaza." },
+        { "id": "beto_mercado", "from": "10:00", "place": "mercado", "schedule": true, "label": "Recorre el mercado, hasta las 15:00." },
+        { "id": "beto_plaza", "from": "15:00", "place": "plaza", "schedule": true, "label": "Vuelve a la plaza y no se mueve de allí." },
+        { "id": "beto_imprenta", "from": "20:30", "place": "imprenta", "if": "beto_avisado" },
+        { "id": "beto_cuartel", "from": "19:30", "place": "cuartel", "if": "beto_detenido", "override": true }
+      ],
+      "observe": [
+        { "actor": "sazil", "lines": [ { "speaker": "sazil", "text": "Gorra, fajo de periódicos y una voz que no necesita megáfono." } ] },
+        { "actor": "akba", "lines": [ { "speaker": "akba", "text": "Sus periódicos zumban. El Umbral le dicta los titulares al oído." } ] }
+      ],
+      "talks": [
+        {
+          "id": "beto_titular",
+          "actor": "any",
+          "label": "Pedirle el titular de hoy",
+          "lines": [
+            { "speaker": "beto", "text": "¡EXTRA, EXTRA! ¡El patio de la relojería se traga a una panadera a las tres!" },
+            { "speaker": "beto", "text": "Tranquilidad: es ficción. Casi siempre." }
+          ],
+          "effects": { "clues": [ "rumor_titular_panadera" ] }
+        },
+        {
+          "id": "beto_imprenta_charla",
+          "actor": "any",
+          "label": "Preguntarle cómo escribe los titulares",
+          "lines": [
+            { "speaker": "beto", "text": "Me vienen solos, como el hipo. Luego la imprenta los pone bonitos." },
+            { "speaker": "beto", "text": "Si la imprenta me llama, dejo hasta la gorra. Bueno, la gorra no." }
+          ],
+          "effects": { "clues": [ "clave_imprenta" ] }
+        },
+        {
+          "id": "beto_cazadores",
+          "actor": "any",
+          "label": "Preguntarle por el hombre del farol",
+          "if": { "time_from": "14:30" },
+          "lines": [
+            { "speaker": "beto", "text": "EXTRA: capitán con farol busca a quien huele a tormenta." },
+            { "speaker": "beto", "text": "Yo huelo a tinta, por si acaso. Dígaselo si lo ve." }
+          ],
+          "effects": { "clues": [ "rumor_cazadores", "hecho_llegada_marcos" ] }
+        },
+        {
+          "id": "beto_recado",
+          "actor": "sazil",
+          "label": "Darle un recado de la imprenta",
+          "if": { "ALL": [ { "time_to": "21:30" }, { "clue": "clave_imprenta" }, { "NOT": "beto_avisado" }, { "ANY": [ { "clue": "hecho_marcos_sospecha" }, { "clue": "hecho_marcos_va_por_beto" } ] } ] },
+          "lines": [
+            { "speaker": "sazil", "text": "Beto, recado de la imprenta: te esperan esta noche a las ocho y media. Sin falta." },
+            { "speaker": "beto", "text": "¡EXTRA! ¡Vendedor abandona la plaza por amor al plomo!" },
+            { "speaker": "beto", "text": "Gracias, Sazil. Hoy tenía un titular feo para mí. Lo cambiaré por uno de lluvia." }
+          ],
+          "effects": { "set": [ "beto_avisado" ] }
+        }
+      ]
+    }
+  ]
+}

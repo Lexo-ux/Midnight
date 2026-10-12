@@ -1,0 +1,352 @@
+extends Node
+## Estado único de la partida (autoload `GameState`). La UI solo lee de aquí,
+## llama a sus acciones y reacciona a sus señales; nunca guarda estado de juego.
+##
+## Dos niveles de estado:
+## - Del bucle (se reinicia a medianoche): todo lo de `sim.s` (hora, a quién
+##   controlas, posiciones, banderas, cartas, Rastro, Desgaste, ruta grabada).
+## - Permanente: el Cuaderno del Umbral, el Velo de cada persona, los finales
+##   vistos, las pistas pedidas, los ajustes y la ruta del bucle anterior.
+
+## Cualquier cambio: la UI se redibuja.
+signal changed
+## Cambio de protagonista (para el barrido de luz).
+signal switched(actor: String)
+signal settings_changed
+
+const GameData := preload("res://scripts/game_data.gd")
+const Simulation := preload("res://scripts/simulation.gd")
+const SaveManager := preload("res://scripts/save_manager.gd")
+
+const DEFAULT_SAVE_PATH: String = "user://savegame.json"
+
+var data: GameData = GameData.new()
+var sim: Simulation
+var save_path: String = DEFAULT_SAVE_PATH
+var autosave_enabled: bool = true
+var load_save_on_ready: bool = true
+
+var loop_number: int = 1
+## id de pista -> {loop, by, time}. Compartido con la simulación.
+var cuaderno: Dictionary = {}
+## id de persona -> nivel de Velo (0 silueta, 1 rasgos; 2 y 3 llegan con las conversaciones).
+var velo: Dictionary = {}
+## id de final -> bucle en que se vio por primera vez.
+var endings_seen: Dictionary = {}
+## id de pregunta -> cuántos niveles de pista se han pedido (0-3).
+var hints: Dictionary = {}
+var settings: Dictionary = {"reduced_motion": false, "text_size": 1}
+## Acciones del bucle anterior, para «Repetir mi ruta».
+var last_route: Array = []
+
+
+func _ready() -> void:
+	if not data.load_all():
+		return
+	sim = Simulation.new(data)
+	sim.cuaderno = cuaderno
+	if load_save_on_ready:
+		var snapshot := SaveManager.read(save_path, data)
+		if not snapshot.is_empty():
+			import_snapshot(snapshot)
+			return
+	new_game()
+
+
+# --- Acciones de partida --------------------------------------------------
+
+func new_game() -> void:
+	loop_number = 1
+	cuaderno.clear()
+	velo.clear()
+	endings_seen.clear()
+	hints.clear()
+	last_route = []
+	for id: String in data.npc_ids():
+		velo[id] = 0
+	sim.loop_number = loop_number
+	sim.begin_loop()
+	changed.emit()
+
+
+## Borra la partida guardada y empieza de cero. Los ajustes se conservan.
+func restart_game() -> void:
+	SaveManager.delete(save_path)
+	new_game()
+	_autosave()
+
+
+## Medianoche pasada: otro bucle. Se pierde lo del bucle; el Cuaderno se queda.
+func start_next_loop() -> bool:
+	if not is_loop_over():
+		push_error("GameState.start_next_loop: todavía no es medianoche.")
+		return false
+	last_route = sim.s["route"].duplicate(true)
+	loop_number += 1
+	sim.loop_number = loop_number
+	sim.begin_loop()
+	_after_change()
+	return true
+
+
+# --- Acciones del bucle ---------------------------------------------------
+
+func switch_to(actor: String) -> bool:
+	if not can_switch():
+		return false
+	var previous := active_actor()
+	if not sim.switch_to(actor):
+		return false
+	if actor != previous:
+		switched.emit(actor)
+		_after_change()
+	return true
+
+
+func can_switch() -> bool:
+	return sim != null and not is_loop_over()
+
+
+## Hace una acción de get_actions() con el protagonista activo (30 minutos).
+func perform(command: Dictionary) -> bool:
+	if not sim.step(command):
+		return false
+	_after_change()
+	return true
+
+
+## Cierra el diálogo del último paso. No cuesta tiempo.
+func dismiss_outcome() -> void:
+	if not outcome_lines().is_empty() or not outcome_clues().is_empty():
+		sim.s["outcome"] = {"lines": [], "clues": []}
+		_after_change()
+
+
+## «Saltar a la hora»: los dos siguen su rutina hasta `minute` (o medianoche).
+func skip_to(minute: int) -> bool:
+	if is_loop_over() or minute <= current_time() or minute > data.day_end:
+		return false
+	while current_time() < minute and not is_loop_over():
+		sim.step({"verb": Simulation.ROUTINE_VERB})
+	sim.s["outcome"] = {"lines": [], "clues": []}
+	_after_change()
+	return true
+
+
+## «Repetir mi ruta» solo al empezar un bucle y si hay ruta del anterior.
+func can_replay() -> bool:
+	return not last_route.is_empty() and current_time() == data.loop_start and sim.s["route"].is_empty() and not is_loop_over()
+
+
+## Repite las acciones del bucle anterior anteriores a `minute`. La simulación
+## es determinista, así que reproduce el mismo bucle.
+func replay_route(minute: int) -> bool:
+	if not can_replay() or minute <= data.loop_start:
+		return false
+	for entry: Dictionary in last_route:
+		if entry["t"] >= minute or is_loop_over():
+			break
+		var ok: bool = sim.switch_to(entry["switch"]) if entry.has("switch") else sim.step(entry["command"])
+		if not ok:
+			push_warning("GameState.replay_route: la ruta se separó en %s." % GameData.format_time(entry["t"]))
+			break
+	sim.s["outcome"] = {"lines": [], "clues": []}
+	_after_change()
+	return true
+
+
+## Pide el siguiente nivel de pista de una pregunta. No toca la simulación.
+func reveal_hint(question_id: String) -> int:
+	var level: int = mini(hints.get(question_id, 0) + 1, 3)
+	hints[question_id] = level
+	_after_change()
+	return level
+
+
+func set_reduced_motion(enabled: bool) -> void:
+	settings["reduced_motion"] = enabled
+	settings_changed.emit()
+	_autosave()
+
+
+func set_text_size(index: int) -> void:
+	settings["text_size"] = clampi(index, 0, data.text_sizes.size() - 1)
+	settings_changed.emit()
+	_autosave()
+
+
+# --- Consultas ------------------------------------------------------------
+
+func current_time() -> int:
+	return sim.s["time"]
+
+
+func active_actor() -> String:
+	return sim.s["active"]
+
+
+func is_loop_over() -> bool:
+	return sim.is_over()
+
+
+func ending_id() -> String:
+	return sim.s["ending"]
+
+
+func get_actions() -> Array[Dictionary]:
+	return sim.actions_for(active_actor())
+
+
+func position_of(id: String) -> String:
+	return sim.s["positions"].get(id, "")
+
+
+func people_at(place: String) -> Array[String]:
+	return sim.people_at(place)
+
+
+func is_disabled(actor: String) -> bool:
+	return sim.is_disabled(actor)
+
+
+func is_exhausted(actor: String) -> bool:
+	return actor == "akba" and current_time() < sim.s["exhausted_until"]
+
+
+func rastro() -> int:
+	return sim.s["rastro"]
+
+
+func desgaste() -> int:
+	return sim.s["desgaste"]
+
+
+func letter_state(id: String) -> Dictionary:
+	return sim.s["letters"][id]
+
+
+func outcome_lines() -> Array:
+	return sim.s["outcome"]["lines"]
+
+
+func outcome_clues() -> Array:
+	return sim.s["outcome"]["clues"]
+
+
+func has_clue(id: String) -> bool:
+	return cuaderno.has(id)
+
+
+func velo_level(person: String) -> int:
+	return velo.get(person, 0)
+
+
+## Preguntas abiertas visibles: [{question, resolved, hint_level}].
+func get_questions() -> Array[Dictionary]:
+	var visible: Array[Dictionary] = []
+	for question: Dictionary in data.questions:
+		if _check_permanent(question["appears_if"]):
+			visible.append({"question": question, "resolved": question["resolved_if"] != null and _check_permanent(question["resolved_if"]),
+					"hint_level": hints.get(question["id"], 0)})
+	return visible
+
+
+## Horas a las que se puede saltar desde ahora.
+func skip_targets() -> Array[int]:
+	var targets: Array[int] = []
+	var next_hour: int = (floori(current_time() / 60.0) + 1) * 60
+	for minute: int in range(next_hour, data.day_end + 1, 60):
+		targets.append(minute)
+	return targets
+
+
+func replay_targets() -> Array[int]:
+	var targets: Array[int] = []
+	if not can_replay():
+		return targets
+	var last_t: int = last_route[-1]["t"]
+	for minute: int in range(data.loop_start + 60, data.day_end + 1, 60):
+		targets.append(minute)
+		if minute > last_t:
+			break
+	return targets
+
+
+# --- Guardado -------------------------------------------------------------
+
+func export_snapshot() -> Dictionary:
+	return {
+		"loop_number": loop_number,
+		"cuaderno": cuaderno.duplicate(true),
+		"velo": velo.duplicate(),
+		"endings_seen": endings_seen.duplicate(),
+		"hints": hints.duplicate(),
+		"settings": settings.duplicate(),
+		"last_route": last_route.duplicate(true),
+		"loop": sim.clone_state(),
+	}
+
+
+## `snapshot` debe venir validado por SaveManager.
+func import_snapshot(snapshot: Dictionary) -> void:
+	loop_number = snapshot["loop_number"]
+	cuaderno.clear()
+	cuaderno.merge(snapshot["cuaderno"].duplicate(true))
+	velo = snapshot["velo"].duplicate()
+	endings_seen = snapshot["endings_seen"].duplicate()
+	hints = snapshot["hints"].duplicate()
+	settings = snapshot["settings"].duplicate()
+	last_route = snapshot["last_route"].duplicate(true)
+	sim.loop_number = loop_number
+	sim.s = snapshot["loop"].duplicate(true)
+	settings_changed.emit()
+	changed.emit()
+
+
+# --- Interno --------------------------------------------------------------
+
+func _after_change() -> void:
+	_update_velo()
+	if is_loop_over() and not endings_seen.has(ending_id()):
+		endings_seen[ending_id()] = loop_number
+	_autosave()
+	changed.emit()
+
+
+## Velo 1 en cuanto se conoce todo su horario dentro de la ventana del bucle.
+func _update_velo() -> void:
+	for id: String in data.npc_ids():
+		if velo.get(id, 0) >= 1:
+			continue
+		var complete := true
+		for segment: Dictionary in data.relevant_schedule(id):
+			if not cuaderno.has("horario_" + segment["id"]):
+				complete = false
+				break
+		if complete:
+			velo[id] = 1
+
+
+## Condiciones que solo miran el Cuaderno (preguntas abiertas).
+func _check_permanent(condition: Variant) -> bool:
+	if condition == null:
+		return true
+	if condition is Array:
+		return condition.all(_check_permanent)
+	var key: String = condition.keys()[0]
+	match key:
+		"ALL":
+			return _check_permanent(condition[key])
+		"ANY":
+			return condition[key].any(_check_permanent)
+		"NOT":
+			var negated: Variant = condition[key]
+			return not negated.any(_check_permanent) if negated is Array else not _check_permanent(negated)
+		"clue":
+			return cuaderno.has(condition[key])
+	return false
+
+
+func _autosave() -> void:
+	if autosave_enabled and sim != null:
+		SaveManager.write(save_path, export_snapshot())

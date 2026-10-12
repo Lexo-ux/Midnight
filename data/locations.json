@@ -1,0 +1,228 @@
+{
+  "locations": [
+    {
+      "id": "relojeria",
+      "name": "Relojería de Ruth",
+      "short": "Relojería",
+      "visible": true,
+      "interior": true,
+      "open": "08:00",
+      "close": "16:00",
+      "card": [
+        { "if": { "time_to": "16:00" }, "text": "Tic-tac por todas partes. Ningún reloj está de acuerdo con otro." },
+        { "if": { "night": true }, "text": "Persiana bajada. Por la rendija del patio sale una luz que no es de ninguna farola." },
+        { "text": "Cerrado. Dentro, un reloj insiste en dar la hora equivocada." }
+      ],
+      "observe": [
+        {
+          "actor": "sazil",
+          "if": { "time_to": "16:00" },
+          "lines": [ { "speaker": "sazil", "text": "Relojes por todas partes, y todos se atrasan un poco. Ruth los mira como quien cuenta ovejas." } ]
+        },
+        {
+          "actor": "sazil",
+          "lines": [ { "speaker": "sazil", "text": "Persiana bajada. Dentro, un reloj insiste en dar la hora equivocada. Le tengo cariño." } ]
+        },
+        {
+          "actor": "akba",
+          "if": { "ALL": [ { "time_to": "15:00" }, { "NOT": "patio_sellado" } ] },
+          "lines": [ { "speaker": "akba", "text": "Al fondo, en el patio, una grieta dormida. Respira despacio, como un perro viejo." } ],
+          "clues": [ "hecho_grieta_dormida" ]
+        },
+        {
+          "actor": "akba",
+          "if": "fisura_cerrada",
+          "lines": [ { "speaker": "akba", "text": "El patio está quieto. La costura aguanta. Hasta medianoche, que es lo que aguanta todo." } ]
+        },
+        {
+          "actor": "akba",
+          "if": { "ALL": [ "fisura_abierta", { "ANY": [ { "time_to": "16:00" }, "relojeria_forzada" ] } ] },
+          "lines": [ { "speaker": "akba", "text": "La fisura del patio sigue abierta. Huele a lluvia de otro sitio." } ],
+          "clues": [ "hecho_fisura_patio" ]
+        },
+        {
+          "actor": "akba",
+          "if": { "time_from": "16:00" },
+          "lines": [ { "speaker": "akba", "text": "Desde la calle se ve una luz rara en el patio. La puerta está cerrada con llave. Por ahora." } ]
+        },
+        {
+          "actor": "akba",
+          "lines": [ { "speaker": "akba", "text": "Relojes. Muchos. Ninguno me cae bien." } ]
+        }
+      ],
+      "interactions": [
+        {
+          "id": "sellar_patio_dia",
+          "actor": "akba",
+          "verb": "sellar",
+          "label": "La grieta del patio (de día cuesta el doble)",
+          "from": "14:00",
+          "to": "15:00",
+          "if": { "ALL": [ { "NOT": "patio_sellado" }, { "ANY": [ { "clue": "hecho_grieta_dormida" }, { "clue": "hecho_fisura_patio" } ] } ] },
+          "rastro": 1,
+          "lines": [
+            { "speaker": "akba", "text": "Cierro la grieta con la palma. Pesa como una puerta mojada." },
+            { "speaker": "akba", "text": "De día esto cuesta el doble. Lo noto en los dientes." }
+          ],
+          "effects": { "set": [ "patio_sellado" ] }
+        },
+        {
+          "id": "sostener_lina",
+          "actor": "akba",
+          "verb": "forzar",
+          "label": "Sostener a Lina",
+          "times": [ "15:00" ],
+          "if": "lina_al_borde",
+          "rastro": 2,
+          "lines": [
+            { "speaker": "akba", "text": "La agarro del brazo. El Umbral tira. Yo tiro más." },
+            { "speaker": "lina", "text": "¡Ay! ¿Y usted de dónde ha salido? Suélteme el pan, que es de Ruth." }
+          ],
+          "effects": { "set": [ "lina_sostenida" ] }
+        },
+        {
+          "id": "tirar_de_lina",
+          "actor": "sazil",
+          "verb": "actuar",
+          "label": "Tirar de Lina",
+          "times": [ "15:00" ],
+          "if": { "ALL": [ "lina_al_borde", "lina_confia", { "was_at": { "who": "sazil", "place": "relojeria", "time": "14:30" } } ] },
+          "lines": [
+            { "speaker": "sazil", "text": "¡Lina, dame la canasta! ¡Ahora!" },
+            { "speaker": "lina", "text": "Si tanto la quieres... ¡ay, que me voy!" },
+            { "speaker": "sazil", "text": "No te vas. Ya estás aquí. Respira." }
+          ],
+          "effects": { "set": [ "lina_salvada" ] }
+        },
+        {
+          "id": "forzar_puerta_relojeria",
+          "actor": "akba",
+          "verb": "forzar",
+          "label": "La puerta de la relojería",
+          "from": "16:00",
+          "if": { "NOT": "relojeria_forzada" },
+          "rastro": 1,
+          "lines": [ { "speaker": "akba", "text": "La cerradura cede sin ruido. Ruth la engrasa cada día. Cada mismo día." } ],
+          "effects": { "set": [ "relojeria_forzada" ] }
+        },
+        {
+          "id": "sellar_fisura_noche",
+          "actor": "akba",
+          "verb": "sellar",
+          "label": "La fisura del patio",
+          "from": "18:00",
+          "if": { "ALL": [ "relojeria_forzada", "fisura_abierta", { "NOT": "fisura_cerrada" } ] },
+          "rastro": 1,
+          "lines": [ { "speaker": "akba", "text": "Coso la fisura con hilo de noche. Aguantará hasta medianoche. Nada aguanta más." } ],
+          "effects": { "set": [ "fisura_cerrada" ] }
+        }
+      ]
+    },
+    {
+      "id": "mercado",
+      "name": "Mercado",
+      "visible": true,
+      "interior": false,
+      "open": "07:00",
+      "close": "15:00",
+      "card": [
+        { "if": { "time_to": "15:00" }, "text": "Puestos, regateos y chismes a media voz. Huele a pan y a naranja." },
+        { "text": "Cerrado. Quedan cáscaras, un toldo a medio recoger y un perro con planes." }
+      ],
+      "observe": [
+        {
+          "actor": "sazil",
+          "if": "lina_perdida",
+          "lines": [ { "speaker": "sazil", "text": "El puesto de Lina está tapado con un trapo. Nadie la vio volver de la relojería." } ],
+          "clues": [ "hecho_puesto_vacio" ]
+        },
+        {
+          "actor": "sazil",
+          "if": { "time_to": "15:00" },
+          "lines": [ { "speaker": "sazil", "text": "Puestos, regateos y chismes a media voz. Lina le habla a la masa como a una hija." } ]
+        },
+        {
+          "actor": "sazil",
+          "lines": [ { "speaker": "sazil", "text": "El mercado ya cerró. Quedan cáscaras y un perro con planes." } ]
+        },
+        {
+          "actor": "akba",
+          "lines": [ { "speaker": "akba", "text": "Un frío baja del callejón hacia la relojería. Nadie más lo nota. Nadie más nota nunca nada." } ],
+          "clues": [ "rumor_frio_callejon" ]
+        }
+      ]
+    },
+    {
+      "id": "plaza",
+      "name": "Plaza de la Unión",
+      "short": "Plaza",
+      "visible": true,
+      "interior": false,
+      "card": [
+        { "if": { "time_from": "20:00" }, "text": "Fiesta de la Unión: farolillos, maíz asado y una música que todos creen recordar." },
+        { "text": "La fuente, los bancos al sol y Beto anunciando el fin del mundo a buen precio." }
+      ],
+      "observe": [
+        {
+          "actor": "sazil",
+          "if": { "time_from": "20:00" },
+          "lines": [ { "speaker": "sazil", "text": "Farolillos, música y maíz asado. Much está de fiesta y no sabe por qué le duele un poco." } ]
+        },
+        {
+          "actor": "sazil",
+          "lines": [ { "speaker": "sazil", "text": "La fuente, los bancos al sol y Beto gritando titulares. Todo como siempre. Raro, eso de «siempre»." } ]
+        },
+        {
+          "actor": "akba",
+          "if": { "night": true },
+          "lines": [ { "speaker": "akba", "text": "Flores marchitas dibujan una espiral alrededor de la fuente. Alguien la dibujó con el Umbral." } ]
+        },
+        {
+          "actor": "akba",
+          "lines": [ { "speaker": "akba", "text": "Demasiada luz. De día, la plaza solo me enseña gente." } ]
+        }
+      ],
+      "interactions": [
+        {
+          "id": "interponerse",
+          "actor": "sazil",
+          "verb": "actuar",
+          "label": "Ponerte entre Marcos y Beto",
+          "times": [ "19:00", "21:00" ],
+          "if": { "ALL": [ "marcos_va_por_beto", { "NOT": "beto_protegido" } ] },
+          "lines": [
+            { "speaker": "sazil", "text": "Capitán, perdone, ¿me firma este acuse de recibo? Es urgentísimo." },
+            { "speaker": "marcos", "text": "...Por supuesto. ¿Dónde?" },
+            { "speaker": "beto", "text": "EXTRA: vendedor desaparece entre la multitud. Fuentes cercanas: él mismo." }
+          ],
+          "effects": { "set": [ "beto_protegido" ] }
+        },
+        {
+          "id": "atraer_marcos",
+          "actor": "akba",
+          "verb": "forzar",
+          "label": "Atraer a Marcos hacia ti",
+          "times": [ "19:00", "21:00" ],
+          "if": { "ALL": [ "marcos_va_por_beto", { "NOT": "beto_protegido" } ] },
+          "rastro": 6,
+          "lines": [
+            { "speaker": "akba", "text": "Dejo que el Umbral me salga por los ojos. Marcos se olvida de Beto." },
+            { "speaker": "marcos", "text": "Vaya. Usted sí que brilla. Quédese donde está, por favor." }
+          ],
+          "effects": { "set": [ "beto_protegido" ] }
+        }
+      ]
+    },
+    { "id": "observatorio", "name": "Observatorio", "visible": false },
+    { "id": "casa_sazil", "name": "Casa de Sazil y Tun", "short": "Casa", "visible": false },
+    { "id": "casa_ruth", "name": "Casa de Ruth", "visible": false },
+    { "id": "casa_lina", "name": "Casa de Lina", "visible": false },
+    { "id": "casa_beto", "name": "Casa de Beto", "visible": false },
+    { "id": "correos", "name": "Oficina de Correos", "short": "Correos", "visible": false },
+    { "id": "tren", "name": "El tren", "visible": false },
+    { "id": "posada", "name": "La posada", "visible": false },
+    { "id": "imprenta", "name": "La imprenta", "visible": false },
+    { "id": "cuartel", "name": "El cuartel de los Cazadores", "short": "Cuartel", "visible": false },
+    { "id": "umbral", "name": "El Umbral", "visible": false }
+  ]
+}

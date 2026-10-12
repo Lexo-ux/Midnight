@@ -1,0 +1,18 @@
+{
+  "endings": [
+    {
+      "id": "un_buen_dia",
+      "title": "Un buen día",
+      "text": "Lina reparte pan dulce en la fiesta. Tun apunta los fuegos artificiales uno por uno. Beto, desde la imprenta, jura que lo sabía. A medianoche, Much se pliega igual. Pero hoy salió bien, y eso también cuenta.",
+      "if": { "NOT": [ "lina_perdida", "tun_herido", "beto_detenido", "akba_forzo" ] },
+      "clue": "final_un_buen_dia"
+    },
+    {
+      "id": "otra_vez",
+      "title": "Otra vez",
+      "text": "Medianoche. El cielo se pliega hacia el Observatorio y la ciudad se dobla como un papel. Vuelven a ser las dos de la tarde. Akba lo recuerda todo. Sazil solo siente que esta bolsa ya la cargó antes.",
+      "default": true,
+      "clue": "final_otra_vez"
+    }
+  ]
+}

@@ -1,0 +1,114 @@
+{
+  "clues": [
+    { "id": "hecho_llegada_marcos", "type": "Hecho", "title": "El hombre del farol", "text": "Marcos, capitán de los Cazadores, llega en el tren de las 14:00.", "person": "marcos", "place": "plaza", "time": "14:00" },
+    { "id": "hecho_marcos_sospecha", "type": "Hecho", "title": "Preguntas en el mercado", "text": "Marcos pregunta por el vendedor cuyos titulares se cumplen. Sospecha de Beto.", "person": "marcos", "place": "mercado", "time": "14:30" },
+    { "id": "hecho_grieta_dormida", "type": "Hecho", "title": "Una grieta dormida", "text": "Antes de las 15:00 hay una grieta dormida en el patio de la relojería. Akba puede verla porque es un interior.", "place": "relojeria", "time": "14:00" },
+    { "id": "hecho_fisura_patio", "type": "Hecho", "title": "La fisura de las tres", "text": "A las 15:00 se abre una fisura en el patio de la relojería. Si Lina está ahí, queda al borde.", "person": "lina", "place": "relojeria", "time": "15:00" },
+    { "id": "hecho_lina_desaparece", "type": "Hecho", "title": "Lina no vuelve", "text": "A las 15:30 la fisura se lleva a Lina, salvo que alguien la sostenga a las 15:00.", "person": "lina", "place": "relojeria", "time": "15:30" },
+    { "id": "hecho_puesto_vacio", "type": "Hecho", "title": "El puesto vacío", "text": "El puesto de Lina queda tapado con un trapo. Nadie la vio volver de la relojería.", "person": "lina", "place": "mercado", "time": "15:00" },
+    { "id": "hecho_ruth_otra_vez", "type": "Hecho", "title": "«Otra vez»", "text": "Ruth murmura «otra vez» sin darse cuenta, sobre todo al cerrar a las 15:30.", "person": "ruth", "place": "relojeria", "time": "15:30" },
+    { "id": "hecho_marcos_va_por_beto", "type": "Hecho", "title": "La patrulla", "text": "A las 21:00 Marcos patrulla la plaza y se lleva a Beto media hora después.", "person": "beto", "place": "plaza", "time": "21:00" },
+    { "id": "hecho_tun_herido", "type": "Hecho", "title": "Tun, herido", "text": "Tun sale a defender a Beto y Marcos lo hiere en el brazo.", "person": "tun", "place": "plaza", "time": "21:30" },
+    { "id": "hecho_marcos_busca", "type": "Hecho", "title": "Sigue el Rastro", "text": "Si no encuentra a quién detener y hay Rastro, Marcos sale a buscar a Akba.", "person": "marcos", "place": "plaza", "time": "21:00" },
+    { "id": "hecho_akba_atrapado", "type": "Hecho", "title": "Atrapado", "text": "Con el Rastro al máximo, o con Marcos buscándolo, los Cazadores encuentran a Akba allí donde esté.", "person": "marcos" },
+    { "id": "secreto_pedido_tachado", "type": "Secreto", "title": "La línea tachada", "text": "Al pie del pedido de pan para Lina, Ruth escribió «no vengas tú» y lo tachó.", "person": "ruth" },
+    { "id": "secreto_libreta_tun", "type": "Secreto", "title": "La libreta de Tun", "text": "Ruth dice cada día las mismas frases a la misma hora. Tun las anota todas.", "person": "tun" },
+    { "id": "rumor_titular_panadera", "type": "Rumor", "title": "El titular de Beto", "text": "«El patio de la relojería se traga a una panadera a las tres.» Beto dice que es ficción. Casi siempre.", "person": "beto" },
+    { "id": "rumor_cazadores", "type": "Rumor", "title": "El farol que busca", "text": "Un capitán con farol busca a quien huele a Umbral.", "person": "marcos" },
+    { "id": "rumor_patio_tres", "type": "Rumor", "title": "El patio cerrado", "text": "Ruth cierra el patio a partir de las tres, siempre, y no sabe por qué.", "person": "ruth", "place": "relojeria" },
+    { "id": "rumor_frio_callejon", "type": "Rumor", "title": "Un frío que camina", "text": "Un frío baja del mercado hacia la relojería. Solo Akba lo nota.", "place": "mercado" },
+    { "id": "clave_imprenta", "type": "Clave", "title": "La imprenta", "text": "Si la imprenta llama a Beto, deja la plaza al momento.", "person": "beto" },
+    { "id": "clave_canasta", "type": "Clave", "title": "La canasta", "text": "Lina confía en quien le carga la canasta.", "person": "lina", "place": "mercado" },
+    { "id": "final_otra_vez", "type": "Final", "title": "Otra vez", "text": "Hay otro final esperando: un día en que todos llegan enteros a medianoche." },
+    { "id": "final_un_buen_dia", "type": "Final", "title": "Un buen día", "text": "Lina, Tun y Beto llegaron enteros a medianoche, sin que Akba tocara el Umbral. Y aun así, el día volvió." }
+  ],
+  "questions": [
+    {
+      "id": "q_bolsa",
+      "text": "¿Qué dice la carta que Sazil lleva en la bolsa?",
+      "resolved_if": { "clue": "secreto_pedido_tachado" },
+      "hints": [
+        "Las cartas también hablan, si una se atreve a abrirlas.",
+        "¿Qué pone el pedido para Lina, antes de las 15:00?",
+        "Con Sazil, toca «Leer» la carta antes de entregarla."
+      ]
+    },
+    {
+      "id": "q_lina",
+      "text": "¿Qué le pasa a Lina a las tres?",
+      "appears_if": { "ANY": [ { "clue": "secreto_pedido_tachado" }, { "clue": "rumor_titular_panadera" }, { "clue": "hecho_puesto_vacio" }, { "clue": "hecho_fisura_patio" }, { "clue": "rumor_frio_callejon" } ] },
+      "resolved_if": { "clue": "hecho_lina_desaparece" },
+      "hints": [
+        "Dicen que el taller cierra raro después de las tres.",
+        "¿Qué pasa en la relojería a las 15:00 y a las 15:30?",
+        "Ten a cualquiera de los dos en la relojería a las 14:30 y espera allí hasta las 15:30."
+      ]
+    },
+    {
+      "id": "q_salvar_lina",
+      "text": "¿Cómo evitar que Lina vaya al patio?",
+      "appears_if": { "ANY": [ { "clue": "hecho_lina_desaparece" }, { "clue": "hecho_fisura_patio" } ] },
+      "resolved_if": { "clue": "final_un_buen_dia" },
+      "hints": [
+        "A Lina la mueve un pedido, no las ganas.",
+        "¿Qué pasa si el pedido de la relojería no le llega a Lina? ¿Y si se lo pide alguien de confianza?",
+        "Con Sazil, antes de las 15:00: retén la carta, devuélvesela a Ruth o, tras cargarle la canasta, pídele a Lina que no vaya. También puede tirar de ella a las 15:00 si llegó a la relojería a las 14:30. Akba puede sellar o sostener, pero eso deja Rastro."
+      ]
+    },
+    {
+      "id": "q_ruth",
+      "text": "¿Por qué Ruth dice «otra vez»?",
+      "appears_if": { "ANY": [ { "clue": "hecho_ruth_otra_vez" }, { "clue": "secreto_pedido_tachado" } ] },
+      "resolved_if": { "clue": "secreto_libreta_tun" },
+      "hints": [
+        "Tun lo apunta todo, hasta lo que no entiende.",
+        "¿Qué anota Tun en su libreta en la relojería, antes de las 16:00?",
+        "Con Sazil, habla con Tun en la relojería después de oír a Ruth decir «otra vez»."
+      ]
+    },
+    {
+      "id": "q_marcos",
+      "text": "¿Quién es el hombre del farol y qué busca?",
+      "appears_if": { "ANY": [ { "clue": "hecho_llegada_marcos" }, { "clue": "rumor_cazadores" } ] },
+      "resolved_if": { "clue": "hecho_marcos_sospecha" },
+      "hints": [
+        "Un forastero hace demasiadas preguntas en el mercado.",
+        "¿Qué pregunta Marcos en el mercado entre las 14:30 y las 16:00?",
+        "Con Sazil, habla con Marcos en el mercado entre las 14:30 y las 15:00."
+      ]
+    },
+    {
+      "id": "q_beto",
+      "text": "¿Cómo sacar a Beto de la plaza antes de las 21:00?",
+      "appears_if": { "ANY": [ { "clue": "hecho_marcos_va_por_beto" }, { "clue": "hecho_marcos_sospecha" } ] },
+      "resolved_if": { "clue": "final_un_buen_dia" },
+      "hints": [
+        "Beto tiene una sola debilidad, y huele a tinta.",
+        "¿Qué haría Beto si la imprenta lo llamara esta noche?",
+        "Habla con Beto sobre sus titulares para saber lo de la imprenta y luego, con Sazil, dale el recado antes de las 21:00. O, con Sazil, ponte entre Marcos y Beto a las 21:00."
+      ]
+    },
+    {
+      "id": "q_tun",
+      "text": "¿Por qué hieren a Tun?",
+      "appears_if": { "clue": "hecho_tun_herido" },
+      "resolved_if": { "clue": "final_un_buen_dia" },
+      "hints": [
+        "Tun no se mete en líos. Salvo por un amigo.",
+        "¿A quién defiende Tun en la plaza a las 21:30?",
+        "Si Beto no está en la plaza a las 21:00, nadie tiene que defenderlo. Y Sazil puede pedirle a Tun que se quede en casa."
+      ]
+    },
+    {
+      "id": "q_buen_dia",
+      "text": "¿Puede salir bien un día entero?",
+      "appears_if": { "clue": "final_otra_vez" },
+      "resolved_if": { "clue": "final_un_buen_dia" },
+      "hints": [
+        "Un buen día no necesita milagros. Solo buena puntería.",
+        "¿Y si Lina, Tun y Beto llegan a medianoche sin que Akba toque el Umbral?",
+        "En un mismo bucle: salva a Lina con Sazil, saca a Beto de la plaza antes de las 21:00 y no fuerces nada con Akba."
+      ]
+    }
+  ]
+}

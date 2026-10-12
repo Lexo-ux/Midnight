@@ -1,0 +1,278 @@
+{
+  "events": [
+    {
+      "id": "fisura_patio",
+      "time": "15:00",
+      "place": "relojeria",
+      "if": { "NOT": "patio_sellado" },
+      "variants": [
+        {
+          "if": { "at": { "who": "lina", "place": "relojeria" } },
+          "effects": { "set": [ "lina_al_borde", "fisura_abierta" ] },
+          "witness": {
+            "sazil": {
+              "lines": [
+                { "speaker": "lina", "text": "Ruth, ¿por qué tu patio hace frío en agosto?" },
+                { "speaker": "sazil", "text": "Lina se queda quieta junto al pozo, como si algo la llamara desde abajo." }
+              ],
+              "clues": [ "hecho_fisura_patio" ]
+            },
+            "akba": {
+              "lines": [
+                { "speaker": "akba", "text": "La grieta se abre a sus pies. Luz de todos los colores, y ninguno calienta." },
+                { "speaker": "lina", "text": "¿Quién anda ahí? Que llevo pan, no dinero." }
+              ],
+              "clues": [ "hecho_fisura_patio" ]
+            }
+          }
+        },
+        {
+          "effects": { "set": [ "fisura_abierta" ] },
+          "witness": {
+            "sazil": {
+              "lines": [ { "speaker": "sazil", "text": "Un frío raro baja por el patio. Todos los relojes de la tienda se paran un segundo, a la vez." } ],
+              "clues": [ "hecho_fisura_patio" ]
+            },
+            "akba": {
+              "lines": [ { "speaker": "akba", "text": "La grieta se abre en el patio vacío. Hoy no tiene a quién llevarse. Bien." } ],
+              "clues": [ "hecho_fisura_patio" ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "patio_en_calma",
+      "time": "15:00",
+      "place": "relojeria",
+      "if": "patio_sellado",
+      "variants": [
+        {
+          "witness": {
+            "any": {
+              "lines": [ { "speaker": "ruth", "text": "Qué raro. Las tres, y el patio tan tranquilo. Casi me ofende." } ],
+              "clues": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "lina_cae",
+      "time": "15:30",
+      "place": "relojeria",
+      "if": { "ALL": [ "lina_al_borde", { "NOT": [ "lina_sostenida", "lina_salvada" ] } ] },
+      "variants": [
+        {
+          "effects": { "set": [ "lina_perdida" ] },
+          "witness": {
+            "sazil": {
+              "lines": [ { "speaker": "sazil", "text": "Un golpe de frío. La canasta está en el suelo. Lina no." } ],
+              "clues": [ "hecho_lina_desaparece" ]
+            },
+            "akba": {
+              "lines": [ { "speaker": "akba", "text": "La grieta se cierra con ella dentro. Otra vez llego tarde." } ],
+              "clues": [ "hecho_lina_desaparece" ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "lina_a_salvo",
+      "time": "15:30",
+      "place": "relojeria",
+      "if": { "ALL": [ "lina_al_borde", { "ANY": [ "lina_sostenida", "lina_salvada" ] } ] },
+      "variants": [
+        {
+          "witness": {
+            "any": {
+              "lines": [
+                { "speaker": "lina", "text": "Me tiemblan las piernas y el pan está intacto. Prioridades." },
+                { "speaker": "ruth", "text": "Otra vez no. Esta vez no." }
+              ],
+              "clues": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "ruth_cierra",
+      "time": "15:30",
+      "place": "relojeria",
+      "if": { "at": { "who": "ruth", "place": "relojeria" } },
+      "variants": [
+        {
+          "witness": {
+            "any": {
+              "lines": [
+                { "speaker": "ruth", "text": "Otra vez." },
+                { "speaker": "ruth", "text": "¿Dije algo? Los relojes, que se atrasan. Hora de cerrar." }
+              ],
+              "clues": [ "hecho_ruth_otra_vez" ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "tun_llega",
+      "time": "20:00",
+      "place": "plaza",
+      "if": { "at": { "who": "tun", "place": "plaza" } },
+      "variants": [
+        {
+          "witness": {
+            "any": {
+              "lines": [ { "speaker": "tun", "text": "Anoto: 20:00, farolillos, olor a maíz asado. Hoy todo huele a primera vez." } ],
+              "clues": [ "horario_tun_plaza" ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "patrulla_temprana",
+      "time": "19:00",
+      "place": "plaza",
+      "if": { "ALL": [ { "rastro_min": "medio" }, { "NOT": "patrulla_hecha" }, { "at": { "who": "marcos", "place": "plaza" } } ] },
+      "variants": [
+        {
+          "if": { "at": { "who": "beto", "place": "plaza" } },
+          "effects": { "set": [ "patrulla_hecha", "marcos_va_por_beto" ] },
+          "witness": {
+            "any": {
+              "lines": [
+                { "speaker": "marcos", "text": "Me he adelantado. Algo en el aire me tenía inquieto." },
+                { "speaker": "marcos", "text": "Usted, el de los titulares que se cumplen. Acompáñeme, por favor." },
+                { "speaker": "beto", "text": "EXTRA: vendedor arrestado por acertar demasiado pronto." }
+              ],
+              "clues": [ "hecho_marcos_va_por_beto" ]
+            }
+          }
+        },
+        {
+          "effects": { "set": [ "patrulla_hecha", "marcos_busca_akba" ] },
+          "witness": {
+            "any": {
+              "lines": [ { "speaker": "marcos", "text": "Aquí huele a Umbral, y no es de nadie de esta plaza. Qué interesante." } ],
+              "clues": [ "hecho_marcos_busca" ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "patrulla",
+      "time": "21:00",
+      "place": "plaza",
+      "if": { "ALL": [ { "NOT": "patrulla_hecha" }, { "at": { "who": "marcos", "place": "plaza" } } ] },
+      "variants": [
+        {
+          "if": { "at": { "who": "beto", "place": "plaza" } },
+          "effects": { "set": [ "patrulla_hecha", "marcos_va_por_beto" ] },
+          "witness": {
+            "any": {
+              "lines": [
+                { "speaker": "marcos", "text": "Buenas noches. Usted, el de los titulares que se cumplen. Acompáñeme, por favor." },
+                { "speaker": "beto", "text": "EXTRA: vendedor arrestado por acertar. Fe de erratas: ojalá." }
+              ],
+              "clues": [ "hecho_marcos_va_por_beto" ]
+            }
+          }
+        },
+        {
+          "if": { "rastro_min": 1 },
+          "effects": { "set": [ "patrulla_hecha", "marcos_busca_akba" ] },
+          "witness": {
+            "any": {
+              "lines": [ { "speaker": "marcos", "text": "Aquí huele a Umbral, y no es de nadie de esta plaza. Qué interesante." } ],
+              "clues": [ "hecho_marcos_busca" ]
+            }
+          }
+        },
+        {
+          "effects": { "set": [ "patrulla_hecha" ] },
+          "witness": {
+            "any": {
+              "lines": [ { "speaker": "marcos", "text": "Qué fiesta tan tranquila. Casi decepciona. Buenas noches a todos." } ],
+              "clues": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "detencion",
+      "time": "any",
+      "place": "plaza",
+      "if": { "ALL": [ { "flag_earlier": "marcos_va_por_beto" }, { "at": { "who": "beto", "place": "plaza" } }, { "NOT": [ "beto_protegido", "beto_detenido" ] } ] },
+      "variants": [
+        {
+          "if": { "at": { "who": "tun", "place": "plaza" } },
+          "effects": { "set": [ "beto_detenido", "tun_herido" ] },
+          "witness": {
+            "any": {
+              "lines": [
+                { "speaker": "tun", "text": "¡Suéltelo! ¡Él solo vende papel!" },
+                { "speaker": "marcos", "text": "Apártese, joven. No me obligue." },
+                { "speaker": "tun", "text": "Anoto... 21:30... me duele el brazo." }
+              ],
+              "clues": [ "hecho_tun_herido", "hecho_marcos_va_por_beto" ]
+            }
+          }
+        },
+        {
+          "effects": { "set": [ "beto_detenido" ] },
+          "witness": {
+            "any": {
+              "lines": [ { "speaker": "beto", "text": "EXTRA: hombre se va con capitán. Lleva gorra. No opone resistencia." } ],
+              "clues": [ "hecho_marcos_va_por_beto" ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "captura_akba",
+      "time": "any",
+      "place": "@akba",
+      "if": { "ALL": [ { "ANY": [ { "rastro_min": "alto" }, "marcos_busca_akba" ] }, { "together": [ "marcos", "akba" ] }, { "NOT": "akba_atrapado" } ] },
+      "variants": [
+        {
+          "effects": { "set": [ "akba_atrapado" ] },
+          "witness": {
+            "akba": {
+              "lines": [
+                { "speaker": "marcos", "text": "Por fin. Usted deja huellas hasta en el aire." },
+                { "speaker": "akba", "text": "Mala hora." }
+              ],
+              "clues": [ "hecho_akba_atrapado" ]
+            },
+            "sazil": {
+              "lines": [
+                { "speaker": "marcos", "text": "Disculpe la molestia. Es un asunto de seguridad." },
+                { "speaker": "sazil", "text": "¡Eh! ¿Adónde se lo lleva?" }
+              ],
+              "clues": [ "hecho_akba_atrapado" ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "timeline": [
+    { "time": "14:00", "label": "Marcos llega en el tren", "clue": "hecho_llegada_marcos" },
+    { "time": "14:30", "label": "Marcos pregunta en el mercado por Beto", "clue": "hecho_marcos_sospecha" },
+    { "time": "15:00", "label": "Lina lleva el pan a la relojería", "clue": "horario_lina_pan" },
+    { "time": "15:00", "label": "Se abre la fisura del patio", "clue": "hecho_fisura_patio" },
+    { "time": "15:30", "label": "Lina desaparece en el patio", "clue": "hecho_lina_desaparece" },
+    { "time": "15:30", "label": "Ruth cierra murmurando «otra vez»", "clue": "hecho_ruth_otra_vez" },
+    { "time": "16:00", "label": "Ruth y Tun dejan la relojería", "clue": "horario_ruth_tarde" },
+    { "time": "20:00", "label": "Tun llega a la fiesta", "clue": "horario_tun_plaza" },
+    { "time": "21:00", "label": "Marcos patrulla la plaza y va por Beto", "clue": "hecho_marcos_va_por_beto" },
+    { "time": "21:30", "label": "Beto detenido; Tun herido al defenderlo", "clue": "hecho_tun_herido" },
+    { "time": "22:00", "label": "Ruth sube al Observatorio", "clue": "horario_ruth_observatorio" }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "letters": [
+    {
+      "id": "orden_lina",
+      "label": "Pedido de la relojería para Lina",
+      "sender": "ruth",
+      "recipient": "lina",
+      "carrier": "sazil",
+      "read": {
+        "lines": [
+          { "speaker": "sazil", "text": "«Lina: el pan de siempre, a las tres en punto. Ruth.»" },
+          { "speaker": "sazil", "text": "Debajo hay una línea tachada: «no vengas tú». La tachó con mucho cuidado, como quien tapa a un niño." }
+        ],
+        "effects": { "clues": [ "secreto_pedido_tachado" ] }
+      },
+      "deliver": {
+        "lines": [ { "speaker": "lina", "text": "¡El pedido de Ruth! A las tres, como un reloj. Bueno, como sus relojes no." } ],
+        "effects": {}
+      },
+      "retain": {
+        "lines": [ { "speaker": "sazil", "text": "Esta se queda en la bolsa. Por una vez, el correo llega tarde a propósito." } ],
+        "effects": {}
+      },
+      "divert": [
+        {
+          "to": "ruth",
+          "lines": [
+            { "speaker": "sazil", "text": "Ruth, creo que esto es tuyo." },
+            { "speaker": "ruth", "text": "Mi pedido... ¿Otra vez?" },
+            { "speaker": "ruth", "text": "Bueno. Hoy iré yo por el pan. Me vendrá bien andar." }
+          ],
+          "effects": { "clues": [ "hecho_ruth_otra_vez" ] }
+        }
+      ]
+    }
+  ]
+}

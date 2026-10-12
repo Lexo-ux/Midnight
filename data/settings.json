@@ -1,0 +1,26 @@
+{
+  "loop_start": "14:00",
+  "day_end": "24:00",
+  "step_minutes": 30,
+  "day_starts": "06:00",
+  "night_starts": "18:00",
+  "start_active": "sazil",
+  "rastro": {
+    "max": 6,
+    "thresholds": { "medio": 3, "alto": 6 }
+  },
+  "desgaste": { "max": 4, "cost": 1, "day_multiplier": 2 },
+  "palette": [
+    { "time": "06:00", "sky": "#ebdfc4", "horizon": "#d9bb8b", "card": "#f7f0e2", "stars": 0.0 },
+    { "time": "16:00", "sky": "#e9cf9e", "horizon": "#d39a5b", "card": "#f4e7cc", "stars": 0.0 },
+    { "time": "18:00", "sky": "#b8775b", "horizon": "#5e3e64", "card": "#efdcc4", "stars": 0.15 },
+    { "time": "19:30", "sky": "#27255b", "horizon": "#3c2f6f", "card": "#2b2b54", "stars": 0.8 },
+    { "time": "21:00", "sky": "#121436", "horizon": "#1f1d4d", "card": "#23244b", "stars": 1.0 }
+  ],
+  "ink": { "dark": "#2b2418", "light": "#efeef8" },
+  "text_sizes": [
+    { "name": "Normal", "body": 40, "title": 52 },
+    { "name": "Grande", "body": 46, "title": 58 },
+    { "name": "Muy grande", "body": 54, "title": 66 }
+  ]
+}
