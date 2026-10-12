@@ -1,0 +1,159 @@
+{
+  "canvas": { "width": 2880, "height": 1920 },
+  "camera": { "glide_ms": 350, "wait_glide_ms": 1400, "hands_ms": 180, "drag_threshold_px": 14 },
+  "npc_height": 440,
+  "bg_bands": [
+    { "time": "14:00", "day": 1.0, "dusk": 0.0, "night": 0.0 },
+    { "time": "16:30", "day": 1.0, "dusk": 0.0, "night": 0.0 },
+    { "time": "17:30", "day": 0.0, "dusk": 1.0, "night": 0.0 },
+    { "time": "18:30", "day": 0.0, "dusk": 1.0, "night": 0.0 },
+    { "time": "19:30", "day": 0.0, "dusk": 0.0, "night": 1.0 },
+    { "time": "24:00", "day": 0.0, "dusk": 0.0, "night": 1.0 }
+  ],
+  "grading": [
+    { "time": "14:00", "tint": "#fffaf0", "light": "#ffd9a0", "light_strength": 0.05, "vignette": 0.14, "grain": 0.035 },
+    { "time": "16:00", "tint": "#fff3e0", "light": "#ffc67a", "light_strength": 0.07, "vignette": 0.17, "grain": 0.035 },
+    { "time": "18:00", "tint": "#ffe4c8", "light": "#ff9e5e", "light_strength": 0.09, "vignette": 0.24, "grain": 0.04 },
+    { "time": "20:00", "tint": "#d9d4f2", "light": "#6a5cc8", "light_strength": 0.06, "vignette": 0.3, "grain": 0.045 },
+    { "time": "22:00", "tint": "#c6c8ec", "light": "#4a4aa8", "light_strength": 0.05, "vignette": 0.34, "grain": 0.05 },
+    { "time": "24:00", "tint": "#bcc0e6", "light": "#3a3a90", "light_strength": 0.05, "vignette": 0.38, "grain": 0.05 }
+  ],
+  "looks": {
+    "sazil": { "tint": "#fff6ea", "vignette": 0.0, "overlay": false },
+    "akba": { "tint": "#d8e4ff", "vignette": 0.12, "overlay": true }
+  },
+  "hands": {
+    "states": [ "idle", "hold_letter", "point", "light", "reach", "wait" ],
+    "by_verb": {
+      "sazil": {
+        "rutina": "wait", "esperar": "wait", "observar": "point", "seguir": "point", "hablar": "idle", "interactuar": "reach",
+        "leer": "hold_letter", "retener": "hold_letter", "entregar": "hold_letter", "desviar": "hold_letter"
+      },
+      "akba": {
+        "rutina": "wait", "esperar": "wait", "observar": "light", "seguir": "point", "hablar": "idle", "interactuar": "reach",
+        "leer": "idle", "retener": "idle", "entregar": "idle", "desviar": "idle"
+      }
+    }
+  },
+  "places": {
+    "relojeria": {
+      "ground_y": 1560,
+      "entry": "calle",
+      "observe": "escaparate",
+      "default_person": "calle",
+      "stations": [
+        { "id": "patio", "x": 620, "name": "El patio del pozo" },
+        { "id": "escaparate", "x": 1480, "name": "El escaparate" },
+        { "id": "calle", "x": 2120, "name": "La calle" },
+        { "id": "portal", "x": 2480, "name": "El portal naranja" }
+      ],
+      "people": { "ruth": "escaparate", "tun": "escaparate", "lina": "patio" },
+      "interactions": {
+        "sellar_patio_dia": "patio", "sostener_lina": "patio", "tirar_de_lina": "patio",
+        "forzar_puerta_relojeria": "escaparate", "sellar_fisura_noche": "patio"
+      },
+      "hotspots": [
+        {
+          "id": "escaparate_relojes", "station": "escaparate", "x": 1480, "y": 1150, "look": "sazil",
+          "hour_from": "14:00", "hour_to": "16:00", "action": "observar", "link": { "clue": "rumor_relojes_atrasados" },
+          "label": "Relojes que se atrasan"
+        },
+        {
+          "id": "grieta_pozo", "station": "patio", "x": 590, "y": 1240, "look": "akba",
+          "hour_from": "14:00", "hour_to": "15:00", "action": "observar", "link": { "clue": "hecho_grieta_dormida" },
+          "label": "Una grieta dormida", "fissure": true
+        },
+        {
+          "id": "fisura_patio", "station": "patio", "x": 700, "y": 1400, "look": "akba",
+          "hour_from": "15:00", "hour_to": "24:00", "action": "observar", "link": { "clue": "hecho_fisura_patio" },
+          "label": "La fisura del patio", "fissure": true
+        }
+      ]
+    },
+    "mercado": {
+      "ground_y": 1600,
+      "entry": "callejon",
+      "observe": "callejon",
+      "default_person": "callejon",
+      "stations": [
+        { "id": "frutas", "x": 420, "name": "El puesto de fruta" },
+        { "id": "pan", "x": 1040, "name": "El carro del pan" },
+        { "id": "callejon", "x": 1650, "name": "La boca del callejón" },
+        { "id": "hierbas", "x": 2250, "name": "Las hierbas colgadas" }
+      ],
+      "people": { "lina": "pan", "beto": "frutas", "marcos": "hierbas" },
+      "interactions": {},
+      "hotspots": [
+        {
+          "id": "puestos_chismes", "station": "frutas", "x": 420, "y": 1200, "look": "sazil",
+          "hour_from": "14:00", "hour_to": "15:00", "action": "observar", "link": { "clue": "rumor_mercado_chismes" },
+          "label": "Regateos y chismes"
+        },
+        {
+          "id": "puesto_lina", "station": "pan", "x": 1040, "y": 1150, "look": "sazil",
+          "hour_from": "15:30", "hour_to": "24:00", "action": "observar", "link": { "clue": "hecho_puesto_vacio" },
+          "label": "El puesto de Lina"
+        },
+        {
+          "id": "callejon_frio", "station": "callejon", "x": 1650, "y": 1290, "look": "akba",
+          "hour_from": "14:00", "hour_to": "24:00", "action": "observar", "link": { "clue": "rumor_frio_callejon" },
+          "label": "Un frío que baja", "fissure": true
+        }
+      ]
+    },
+    "plaza": {
+      "ground_y": 1620,
+      "entry": "centro",
+      "observe": "centro",
+      "default_person": "centro",
+      "stations": [
+        { "id": "escalinata", "x": 380, "name": "La escalinata" },
+        { "id": "torre", "x": 1180, "name": "La torre del reloj" },
+        { "id": "centro", "x": 1700, "name": "El centro de la plaza" },
+        { "id": "soportales", "x": 2400, "name": "Los soportales" }
+      ],
+      "people": { "beto": "centro", "tun": "escalinata", "lina": "torre", "marcos": "soportales" },
+      "interactions": { "interponerse": "soportales", "atraer_marcos": "soportales" },
+      "hotspots": [
+        {
+          "id": "plaza_de_siempre", "station": "centro", "x": 1560, "y": 1480, "look": "sazil",
+          "hour_from": "14:00", "hour_to": "20:00", "action": "observar", "link": { "clue": "rumor_plaza_siempre" },
+          "label": "La plaza de siempre"
+        },
+        {
+          "id": "farolillos", "station": "torre", "x": 1180, "y": 1000, "look": "sazil",
+          "hour_from": "20:00", "hour_to": "24:00", "action": "observar", "link": { "clue": "rumor_fiesta_union" },
+          "label": "Farolillos de la Unión"
+        },
+        {
+          "id": "espiral_flores", "station": "centro", "x": 1640, "y": 1640, "look": "akba",
+          "hour_from": "18:00", "hour_to": "24:00", "action": "observar", "link": { "clue": "rumor_espiral_flores" },
+          "label": "Flores marchitas en espiral", "fissure": true
+        }
+      ]
+    }
+  },
+  "map": {
+    "nodes": [
+      { "place": "plaza", "x": 0.5, "y": 0.42 },
+      { "place": "mercado", "x": 0.27, "y": 0.6 },
+      { "place": "relojeria", "x": 0.72, "y": 0.62 },
+      { "place": "correos", "x": 0.22, "y": 0.3 },
+      { "place": "casa_sazil", "x": 0.14, "y": 0.8 },
+      { "place": "observatorio", "x": 0.82, "y": 0.14 },
+      { "place": "casa_ruth", "x": 0.88, "y": 0.4 },
+      { "place": "casa_lina", "x": 0.38, "y": 0.86 },
+      { "place": "casa_beto", "x": 0.6, "y": 0.86 },
+      { "place": "imprenta", "x": 0.42, "y": 0.18 },
+      { "place": "posada", "x": 0.64, "y": 0.24 },
+      { "place": "cuartel", "x": 0.88, "y": 0.84 },
+      { "place": "tren", "x": 0.1, "y": 0.1 }
+    ],
+    "roads": [
+      [ "plaza", "mercado" ], [ "plaza", "relojeria" ], [ "mercado", "relojeria" ], [ "plaza", "correos" ],
+      [ "plaza", "imprenta" ], [ "plaza", "posada" ], [ "posada", "observatorio" ], [ "relojeria", "casa_ruth" ],
+      [ "mercado", "casa_lina" ], [ "mercado", "casa_sazil" ], [ "relojeria", "casa_beto" ], [ "relojeria", "cuartel" ],
+      [ "correos", "tren" ], [ "casa_lina", "casa_beto" ]
+    ]
+  }
+}

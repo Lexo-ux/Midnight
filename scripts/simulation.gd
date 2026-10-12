@@ -10,8 +10,12 @@ extends RefCounted
 ##   5. a medianoche se decide el final.
 ## Las condiciones se evalúan en el momento en que algo ocurre; lo ya ocurrido
 ## nunca se reescribe.
+##
+## Además guarda, solo para la presentación, la estación de cada protagonista en
+## cada lugar (`stations`): sale de su última acción allí y nunca cambia reglas.
 
 const GameData := preload("res://scripts/game_data.gd")
+const SceneRules := preload("res://scripts/scene_rules.gd")
 
 const ROUTINE_VERB: String = "rutina"
 
@@ -54,7 +58,10 @@ func begin_loop() -> void:
 		"route": [],
 		"outcome": {"lines": [], "clues": []},
 		"ending": "",
+		"stations": {},
 	}
+	for id: String in data.protagonist_ids:
+		s["stations"][id] = {}
 	_place_everyone("", {})
 	_run_events()
 
@@ -188,6 +195,7 @@ func step(command: Dictionary) -> bool:
 	s["outcome"] = {"lines": [], "clues": []}
 	if not exploring:
 		s["route"].append({"t": s["time"], "command": _plain_command(command)})
+	var from_place: String = s["positions"][actor]
 	if acted:
 		_apply(actor, command)
 	for id: String in data.protagonist_ids:
@@ -197,6 +205,8 @@ func step(command: Dictionary) -> bool:
 	if s["time"] >= s["exhausted_until"]:
 		s["exhausted_until"] = -1
 	_place_everyone(actor if acted else "", command)
+	if acted and not exploring:
+		_note_station(actor, command, from_place)
 	_run_events()
 	if s["time"] >= data.day_end:
 		_finish_loop()
@@ -304,9 +314,22 @@ func _action(verb: String, place: String, target: String = "", id: String = "") 
 	return {"verb": verb, "place": place, "target": target, "id": id}
 
 
+## La orden tal cual se graba en la ruta. "station" solo viene de tocar un punto
+## interactivo; no cambia la acción, solo adónde mira la cámara.
 func _plain_command(command: Dictionary) -> Dictionary:
-	return {"verb": command.get("verb", ""), "place": command.get("place", ""),
+	var plain: Dictionary = {"verb": command.get("verb", ""), "place": command.get("place", ""),
 			"target": command.get("target", ""), "id": command.get("id", "")}
+	if command.get("station", "") != "":
+		plain["station"] = command["station"]
+	return plain
+
+
+func _note_station(actor: String, command: Dictionary, from_place: String) -> void:
+	var place: String = command["place"]
+	var stations: Dictionary = s["stations"][actor]
+	var station := SceneRules.station_after(data, command, from_place, stations.get(place, ""))
+	if station != "":
+		stations[place] = station
 
 
 func _interaction_open(interaction: Dictionary, t: int) -> bool:

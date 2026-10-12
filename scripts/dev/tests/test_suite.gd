@@ -8,8 +8,14 @@ const GameData := preload("res://scripts/game_data.gd")
 const Simulation := preload("res://scripts/simulation.gd")
 const SaveManager := preload("res://scripts/save_manager.gd")
 const LoopValidator := preload("res://scripts/dev/loop_validator.gd")
+const SceneRules := preload("res://scripts/scene_rules.gd")
+const ArtLibrary := preload("res://scripts/art_library.gd")
+const PLACE_VIEW_SCENE := preload("res://scenes/place_view.tscn")
+const MAP_VIEW_SCENE := preload("res://scenes/map_view.tscn")
 
 const TEST_SAVE_PATH: String = "user://test_savegame.json"
+## Tamaño de la escena en los tests (el de la pantalla del juego).
+const VIEW_SIZE := Vector2(1080, 1100)
 
 var tree: SceneTree
 
@@ -46,6 +52,38 @@ func new_state(save_path: String = TEST_SAVE_PATH, autosave: bool = false, load_
 	tree.root.add_child(state)
 	_nodes.append(state)
 	return state
+
+
+## Añade un nodo al árbol durante el test (se libera al terminar).
+func add_node(node: Node) -> Node:
+	tree.root.add_child(node)
+	_nodes.append(node)
+	return node
+
+
+## La escena de un lugar con el arte del manifiesto real, atada a `state`.
+func new_place_view(state: GameStateScript) -> Control:
+	var view: Control = add_node(PLACE_VIEW_SCENE.instantiate())
+	view.size = VIEW_SIZE
+	var art := ArtLibrary.new()
+	art.load_manifest()
+	view.bind(state, art)
+	return view
+
+
+func new_map_view(state: GameStateScript) -> Control:
+	var map: Control = add_node(MAP_VIEW_SCENE.instantiate())
+	map.size = Vector2(1080, 1920)
+	map.bind(state)
+	return map
+
+
+## El mundo del bucle sin lo que es solo de presentación o de registro.
+func world_without_view(state: GameStateScript, also: Array[String] = []) -> String:
+	var loop: Dictionary = state.export_snapshot()["loop"]
+	for key: String in ["route", "log", "outcome", "stations"] + also:
+		loop.erase(key)
+	return JSON.stringify(loop, "", false)
 
 
 func free_state(state: GameStateScript) -> void:

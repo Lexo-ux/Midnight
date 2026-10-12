@@ -1,9 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
   <!-- Silueta provisional para el estudio. Convención: cuerpo en rojo puro (#ff0000),
        rasgo fijo en verde puro (#00ff00); el juego los tiñe según el Velo. -->
-  <!-- Akba (provisional): abrigo con capucha y farolillo de noche -->
-  <path d="M84 120 C78 52 178 52 172 120 C168 132 88 132 84 120 Z" fill="#ff0000"/>
-  <path d="M56 256 C56 172 84 112 128 112 C172 112 200 172 200 256 Z" fill="#ff0000"/>
-  <line x1="44" y1="150" x2="44" y2="178" stroke="#00ff00" stroke-width="6"/>
-  <circle cx="44" cy="196" r="20" fill="#00ff00"/>
+  <!-- Akba: vigilante nocturno, pelo largo; rasgo fijo: abrigo largo y colgante poliédrico que brilla -->
+  <path d="M96 70 C92 26 166 24 162 70 C170 100 168 122 160 132 L96 132 C88 122 86 100 96 70 Z" fill="#ff0000"/>
+  <path d="M84 132 L172 132 L184 150 C200 190 214 230 222 256 L34 256 C42 230 56 190 72 150 Z" fill="#00ff00"/>
+  <path d="M104 132 L152 132 L146 256 L110 256 Z" fill="#ff0000"/>
+  <line x1="114" y1="134" x2="128" y2="176" stroke="#00ff00" stroke-width="4"/>
+  <line x1="142" y1="134" x2="128" y2="176" stroke="#00ff00" stroke-width="4"/>
+  <polygon points="128,176 141,184 141,200 128,208 115,200 115,184" fill="#00ff00"/>
+  <circle cx="128" cy="192" r="24" fill="none" stroke="#00ff00" stroke-width="3" stroke-dasharray="4 6"/>
 </svg>

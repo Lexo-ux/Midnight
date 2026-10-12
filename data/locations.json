@@ -17,7 +17,8 @@
         {
           "actor": "sazil",
           "if": { "time_to": "16:00" },
-          "lines": [ { "speaker": "sazil", "text": "Relojes por todas partes, y todos se atrasan un poco. Ruth los mira como quien cuenta ovejas." } ]
+          "lines": [ { "speaker": "sazil", "text": "Relojes por todas partes, y todos se atrasan un poco. Ruth los mira como quien cuenta ovejas." } ],
+          "clues": [ "rumor_relojes_atrasados" ]
         },
         {
           "actor": "sazil",
@@ -139,7 +140,8 @@
         {
           "actor": "sazil",
           "if": { "time_to": "15:00" },
-          "lines": [ { "speaker": "sazil", "text": "Puestos, regateos y chismes a media voz. Lina le habla a la masa como a una hija." } ]
+          "lines": [ { "speaker": "sazil", "text": "Puestos, regateos y chismes a media voz. Lina le habla a la masa como a una hija." } ],
+          "clues": [ "rumor_mercado_chismes" ]
         },
         {
           "actor": "sazil",
@@ -166,16 +168,19 @@
         {
           "actor": "sazil",
           "if": { "time_from": "20:00" },
-          "lines": [ { "speaker": "sazil", "text": "Farolillos, música y maíz asado. Much está de fiesta y no sabe por qué le duele un poco." } ]
+          "lines": [ { "speaker": "sazil", "text": "Farolillos, música y maíz asado. Much está de fiesta y no sabe por qué le duele un poco." } ],
+          "clues": [ "rumor_fiesta_union" ]
         },
         {
           "actor": "sazil",
-          "lines": [ { "speaker": "sazil", "text": "La fuente, los bancos al sol y Beto gritando titulares. Todo como siempre. Raro, eso de «siempre»." } ]
+          "lines": [ { "speaker": "sazil", "text": "La fuente, los bancos al sol y Beto gritando titulares. Todo como siempre. Raro, eso de «siempre»." } ],
+          "clues": [ "rumor_plaza_siempre" ]
         },
         {
           "actor": "akba",
           "if": { "night": true },
-          "lines": [ { "speaker": "akba", "text": "Flores marchitas dibujan una espiral alrededor de la fuente. Alguien la dibujó con el Umbral." } ]
+          "lines": [ { "speaker": "akba", "text": "Flores marchitas dibujan una espiral alrededor de la fuente. Alguien la dibujó con el Umbral." } ],
+          "clues": [ "rumor_espiral_flores" ]
         },
         {
           "actor": "akba",

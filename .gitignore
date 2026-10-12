@@ -6,6 +6,9 @@
 # Salidas locales (capturas, grafo del validador, APK de prueba)
 build/
 
+# Arte en bruto que llega para la herramienta de ingesta (ver docs/art_pipeline.md)
+assets/art_incoming/
+
 # Android: la plantilla de Gradle (android/) la regenera Godot con
 # Proyecto > Instalar plantilla de compilación de Android. No se versiona.
 /android/

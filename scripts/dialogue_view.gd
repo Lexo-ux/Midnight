@@ -47,7 +47,7 @@ func _render() -> void:
 	else:
 		var line: Dictionary = lines[_index]
 		_silhouette.show()
-		_silhouette.show_person(line["speaker"], GameState.velo_level(line["speaker"]))
+		_silhouette.show_person(data, line["speaker"], GameState.velo_level(line["speaker"]))
 		_speaker.text = data.people[line["speaker"]]["name"]
 		_line.text = line["text"]
 	_clues.visible = last and not clues.is_empty()
