@@ -1,0 +1,16 @@
+{
+  "description": "«Un buen día» en el bucle 1, solo con Sazil: retiene el pedido de Lina (Lina no va al patio), oye a Marcos sospechar de Beto, se entera de lo de la imprenta y le da a Beto el recado que lo saca de la plaza a las 20:30. Sin Beto ni Rastro, la patrulla de las 21:00 no se lleva a nadie y Tun no sale herido. Akba no fuerza nada.",
+  "expected_ending": "un_buen_dia",
+  "expected_loop": 1,
+  "intended": {
+    "Lina se salva gracias a Sazil": [ "retener:orden_lina", "desviar:orden_lina", "lina_no_vayas", "tirar_de_lina" ],
+    "Beto sale de la plaza o alguien lo protege sin forzar": [ "beto_recado", "interponerse" ]
+  },
+  "steps": [
+    { "act": { "verb": "retener", "place": "mercado", "target": "", "id": "orden_lina" } },
+    { "act": { "verb": "hablar", "place": "mercado", "target": "marcos", "id": "marcos_sazil" } },
+    { "act": { "verb": "hablar", "place": "plaza", "target": "beto", "id": "beto_imprenta_charla" } },
+    { "act": { "verb": "hablar", "place": "plaza", "target": "beto", "id": "beto_recado" } },
+    { "skip": "24:00" }
+  ]
+}

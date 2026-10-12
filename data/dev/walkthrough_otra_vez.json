@@ -1,0 +1,12 @@
+{
+  "description": "El día canónico casi sin tocar: Sazil curiosea en el mercado y luego los dos siguen su rutina hasta medianoche.",
+  "expected_ending": "otra_vez",
+  "expected_loop": 1,
+  "steps": [
+    { "act": { "verb": "observar", "place": "mercado", "target": "", "id": "" } },
+    { "act": { "verb": "hablar", "place": "mercado", "target": "beto", "id": "beto_titular" } },
+    { "switch": "akba" },
+    { "act": { "verb": "observar", "place": "relojeria", "target": "", "id": "" } },
+    { "skip": "24:00" }
+  ]
+}
