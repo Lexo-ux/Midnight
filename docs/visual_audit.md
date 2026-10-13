@@ -93,3 +93,33 @@ Los bloques 1-5 de la Task 06 cubren todo lo anterior; además, de esta auditor�
 4. Interruptores y deslizadores grandes, con forma de encendido/apagado (no solo color).
 5. Modo `--check` en la ingesta de arte.
 6. Manos ocultas cuando el protagonista está en un lugar sin escena.
+
+## 5. Después de la Task 06
+
+Capturas en `docs/screenshots/task-06/after/` (todas las pantallas; `_big` = texto
+Muy grande, `_short` = ventana 1080×1600, `_reduced` = movimiento reducido) y
+antes/después en `docs/screenshots/task-06/compare/`.
+
+| Problema de la auditoría | Cómo quedó |
+| --- | --- |
+| Botones de 120 px (40 dp) | 144 px mínimo en todo lo que se toca (lo comprueba un test en las 3 tallas de texto). |
+| Interfaz sin el estilo del arte | Tema único de rotulador (`scripts/ui_style.gd` → `assets/ui/theme.tres`); sin estilos sueltos en las escenas (test). |
+| Estados solo por color | Lo elegido: borde y base gruesos; desactivado: sin contorno; mirada/fisura: aro redondo/rombo; muros y puertas: icono por forma; pausa: símbolo. |
+| Manos pequeñas y finas | Manos provisionales generadas, 4:3, más grandes; sin manos fuera de escena. |
+| Primer plano como manchas | `fg` y `mid` provisionales de rotulador en los tres lugares. |
+| Etiqueta de punto poco legible | Ficha oscura con contorno y ✓; aro que late con icono. |
+| No se sabe que se puede mirar alrededor | Flechas en los bordes mientras quede escena hacia ese lado. |
+| Acciones cortadas sin aviso | Flecha amarilla «hay más abajo» y barra de desplazamiento visible. |
+| Mapa liso, sin «aquí» ni coste | Iconos de lugar, alfiler y aro amarillo en «Aquí», ficha de 30 min. |
+| Vista previa del mapa en el título | Aviso cian con «Volver». |
+| Cartas bajo el pliegue | Cartas compactas (icono, título, texto): 5 cartas caben con texto Normal; con texto grande se desplaza solo la parte de arriba y Terminar queda a mano. |
+| Pausa del quiebre poco visible | Anillo apagado, símbolo de pausa y aviso cian; botón con icono de mantener o tocar. |
+| Cuaderno desborda con texto Muy grande | Pestañas en 4 o 2 columnas; ninguna pantalla desborda en ninguna talla (test). |
+| Interruptores de 12 px | Interruptores grandes de rotulador (✓ y bola a la derecha = encendido). |
+| Finales solo texto | Ilustración provisional por final, tarjeta de la entrada y botón principal. |
+| Sin transición de bucle | Reloj que vuelve atrás (≤ 1,2 s, se salta, corte con movimiento reducido). |
+| Icono y arranque de Godot | Provisionales propios. |
+| Consejos genéricos | Cada consejo enmarca lo que explica (selector, Cuaderno, Tiempo). |
+
+Pendiente (fuera de esta Task): arte de verdad (ver `docs/art_todo.md`) y medir
+en un teléfono de verdad.

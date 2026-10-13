@@ -64,6 +64,7 @@ func _run() -> void:
 		["07_map_preview", _shot_map_preview],
 		["08_dialogue", _shot_dialogue],
 		["09_conversation_start", _shot_conversation],
+		["10_conversation_five_cards", _shot_conversation_five],
 		["10_conversation_forced", _shot_conversation_forced],
 		["11_breakpoint_choice", _shot_breakpoint_choice],
 		["12_breakpoint_holding", _shot_breakpoint_holding],
@@ -219,6 +220,15 @@ func _shot_dialogue() -> bool:
 func _shot_conversation() -> bool:
 	_node("%ConversationView").call("open", "lina")
 	return true
+
+
+## La mano más grande del corte: 4 cartas del mazo y 1 de Conocimiento.
+func _shot_conversation_five() -> bool:
+	_gs.cuaderno["hecho_fisura_patio"] = {"loop": 1, "by": "sazil", "time": _gs.data.loop_start}
+	_gs.switch_to("akba")
+	var view: Control = _node("%ConversationView")
+	view.call("open", "lina")
+	return (view.get("conv") as Dictionary)["hand"].size() == 5
 
 
 func _shot_conversation_forced() -> bool:

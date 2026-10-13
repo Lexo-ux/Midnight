@@ -38,57 +38,61 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_type_variation = &"Sheet"
 
-[node name="Body" type="ScrollContainer" parent="Sheet"]
+[node name="Box" type="VBoxContainer" parent="Sheet"]
+layout_mode = 2
+
+[node name="Body" type="ScrollContainer" parent="Sheet/Box"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="Box" type="VBoxContainer" parent="Sheet/Body"]
+[node name="Inner" type="VBoxContainer" parent="Sheet/Box/Body"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="Header" type="HBoxContainer" parent="Sheet/Body/Box"]
+[node name="Header" type="HBoxContainer" parent="Sheet/Box/Body/Inner"]
 layout_mode = 2
 
-[node name="Portrait" type="Control" parent="Sheet/Body/Box/Header"]
+[node name="Portrait" type="Control" parent="Sheet/Box/Body/Inner/Header"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(176, 176)
 layout_mode = 2
 size_flags_vertical = 0
 script = ExtResource("2_portrait")
 
-[node name="HeaderText" type="VBoxContainer" parent="Sheet/Body/Box/Header"]
+[node name="HeaderText" type="VBoxContainer" parent="Sheet/Box/Body/Inner/Header"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
 theme_type_variation = &"VBoxTight"
 
-[node name="Name" type="Label" parent="Sheet/Body/Box/Header/HeaderText"]
+[node name="Name" type="Label" parent="Sheet/Box/Body/Inner/Header/HeaderText"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"PaperTitle"
 autowrap_mode = 3
 
-[node name="Velo" type="Label" parent="Sheet/Body/Box/Header/HeaderText"]
+[node name="Velo" type="Label" parent="Sheet/Box/Body/Inner/Header/HeaderText"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"PaperMuted"
 
-[node name="Pips" type="Control" parent="Sheet/Body/Box/Header/HeaderText"]
+[node name="Pips" type="Control" parent="Sheet/Box/Body/Inner/Header/HeaderText"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(300, 48)
 layout_mode = 2
 size_flags_horizontal = 0
 script = ExtResource("3_pips")
 
-[node name="Counters" type="Label" parent="Sheet/Body/Box/Header/HeaderText"]
+[node name="Counters" type="Label" parent="Sheet/Box/Body/Inner/Header/HeaderText"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"PaperLabel"
 autowrap_mode = 3
 
-[node name="Hands" type="Control" parent="Sheet/Body/Box/Header"]
+[node name="Hands" type="Control" parent="Sheet/Box/Body/Inner/Header"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 150)
 layout_mode = 2
@@ -96,76 +100,76 @@ size_flags_vertical = 8
 mouse_filter = 2
 script = ExtResource("4_hands")
 
-[node name="Elements" type="HFlowContainer" parent="Sheet/Body/Box"]
+[node name="Elements" type="HFlowContainer" parent="Sheet/Box/Body/Inner"]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="Lines" type="VBoxContainer" parent="Sheet/Body/Box"]
+[node name="Lines" type="VBoxContainer" parent="Sheet/Box/Body/Inner"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"VBoxTight"
 
-[node name="Spacer" type="Control" parent="Sheet/Body/Box"]
+[node name="Spacer" type="Control" parent="Sheet/Box/Body/Inner"]
 layout_mode = 2
 size_flags_vertical = 3
 mouse_filter = 2
 
-[node name="Cards" type="GridContainer" parent="Sheet/Body/Box"]
+[node name="Cards" type="GridContainer" parent="Sheet/Box/Body/Inner"]
 unique_name_in_owner = true
 layout_mode = 2
 columns = 2
 
-[node name="Result" type="VBoxContainer" parent="Sheet/Body/Box"]
+[node name="Result" type="VBoxContainer" parent="Sheet/Box"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
 
-[node name="ResultTitle" type="Label" parent="Sheet/Body/Box/Result"]
+[node name="ResultTitle" type="Label" parent="Sheet/Box/Result"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"PaperTitle"
 autowrap_mode = 3
 
-[node name="ResultBanner" type="PanelContainer" parent="Sheet/Body/Box/Result"]
+[node name="ResultBanner" type="PanelContainer" parent="Sheet/Box/Result"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"DangerBanner"
 
-[node name="ResultText" type="Label" parent="Sheet/Body/Box/Result/ResultBanner"]
+[node name="ResultText" type="Label" parent="Sheet/Box/Result/ResultBanner"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"BannerLabel"
 autowrap_mode = 3
 
-[node name="Continue" type="Button" parent="Sheet/Body/Box/Result"]
+[node name="Continue" type="Button" parent="Sheet/Box/Result"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(144, 144)
 layout_mode = 2
 theme_type_variation = &"Primary"
 
-[node name="Confirm" type="VBoxContainer" parent="Sheet/Body/Box"]
+[node name="Confirm" type="VBoxContainer" parent="Sheet/Box"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
 
-[node name="ConfirmText" type="Label" parent="Sheet/Body/Box/Confirm"]
+[node name="ConfirmText" type="Label" parent="Sheet/Box/Confirm"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"PaperLabel"
 autowrap_mode = 3
 
-[node name="ConfirmYes" type="Button" parent="Sheet/Body/Box/Confirm"]
+[node name="ConfirmYes" type="Button" parent="Sheet/Box/Confirm"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(144, 144)
 layout_mode = 2
 theme_type_variation = &"Danger"
 
-[node name="ConfirmNo" type="Button" parent="Sheet/Body/Box/Confirm"]
+[node name="ConfirmNo" type="Button" parent="Sheet/Box/Confirm"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(144, 144)
 layout_mode = 2
 
-[node name="Finish" type="Button" parent="Sheet/Body/Box"]
+[node name="Finish" type="Button" parent="Sheet/Box"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(144, 144)
 layout_mode = 2

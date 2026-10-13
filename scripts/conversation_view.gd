@@ -9,8 +9,9 @@ extends Control
 ## (alcanzan al jugar, esperan). Luego, fichas de los muros y puertas (por
 ## forma: ladrillos, ladrillos partidos, arco cerrado, arco abierto; «?» sin
 ## descubrir), lo último que se ha dicho y, abajo del todo, la mano de cartas en
-## 2 columnas (icono de su tipo, título y texto) y Terminar. Con texto Normal
-## todo cabe sin desplazar; con texto grande, la hoja se desplaza.
+## 2 columnas (icono de su tipo, título y texto). Con texto Normal todo cabe sin
+## desplazar; con texto grande se desplaza esa parte. Abajo, siempre a mano:
+## Terminar, el resultado o la confirmación de salir.
 ## Ganar a la fuerza (Akba) hace temblar la hoja y lo avisa en rosa.
 
 const GameData := preload("res://scripts/game_data.gd")
