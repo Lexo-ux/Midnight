@@ -1,0 +1,13 @@
+{
+  "description": "«Un buen día» por los momentos de quiebre, solo con Sazil: espera en la relojería a las 14:00, escucha a Lina en el mercado sin presionarla (la Confianza no baja de 3, así que Lina confía en ella), a las 15:00 la sostiene al borde de la fisura y a las 21:00 se pone entre Marcos y Beto y lo sostiene hasta el final. Akba no fuerza nada.",
+  "expected_ending": "un_buen_dia",
+  "expected_loop": 1,
+  "steps": [
+    { "act": { "verb": "esperar", "place": "relojeria", "target": "", "id": "" } },
+    { "act": { "verb": "hablar", "place": "mercado", "target": "lina", "id": "conv_lina", "cards": [ "escuchar", "silencio", "escuchar" ] } },
+    { "act": { "verb": "interactuar", "place": "relojeria", "target": "", "id": "tirar_de_lina", "decision": "sostuvo" } },
+    { "skip": "21:00" },
+    { "act": { "verb": "interactuar", "place": "plaza", "target": "", "id": "interponerse", "decision": "sostuvo" } },
+    { "skip": "24:00" }
+  ]
+}

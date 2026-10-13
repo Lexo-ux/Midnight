@@ -5,14 +5,18 @@ extends Control
 ## de 30 minutos con las cartas jugadas (GameState.commit_conversation()).
 ## Irse sin jugar ninguna carta no gasta tiempo.
 ##
-## Arriba: la cara según el Velo, la Confianza (puntos) y los turnos. Luego, los
-## muros y puertas (los descubiertos con su nombre), lo que se ha dicho, las
-## manos (alcanzan al jugar, esperan) y la mano de cartas en 2 columnas.
+## Arriba: la cara según el Velo, la Confianza (puntos) y los turnos. Luego,
+## en una zona que se desplaza si no cabe (texto grande): los muros y puertas
+## (los descubiertos con su nombre), lo último que se ha dicho, las manos
+## (alcanzan al jugar, esperan) y la mano de cartas en 2 columnas. Abajo, siempre
+## a mano: Terminar, el resultado o la confirmación de salir.
 
 const GameData := preload("res://scripts/game_data.gd")
 const ArtLibrary := preload("res://scripts/art_library.gd")
 const UiMotion := preload("res://scripts/ui_motion.gd")
 const CARD_MIN_HEIGHT: int = 150
+## Frases que se ven a la vez (las últimas).
+const VISIBLE_LINES: int = 2
 const REACH_SECONDS: float = 0.2
 
 signal closed
@@ -23,7 +27,7 @@ signal closed
 @onready var _pips: Control = %Pips
 @onready var _counters: Label = %Counters
 @onready var _elements: VBoxContainer = %Elements
-@onready var _lines_scroll: ScrollContainer = %LinesScroll
+@onready var _body: ScrollContainer = %Body
 @onready var _lines: VBoxContainer = %Lines
 @onready var _hands: Control = %Hands
 @onready var _cards: GridContainer = %Cards
@@ -63,6 +67,7 @@ func bind(art: ArtLibrary) -> void:
 func open(person: String) -> void:
 	conv = GameState.start_conversation(person)
 	_confirm.hide()
+	_body.scroll_vertical = 0
 	UiMotion.fade_in(self, GameState.settings["reduced_motion"])
 	_show_hands("wait", 0.0)
 	_render()
@@ -117,8 +122,7 @@ func _render() -> void:
 
 func _render_elements() -> void:
 	var data := GameState.data
-	for child: Node in _elements.get_children():
-		child.queue_free()
+	_clear(_elements)
 	for element: Dictionary in data.conversations[conv["conversation"]]["elements"]:
 		var id: String = element["id"]
 		var known: bool = conv["revealed"].has(id) or conv["broken"].has(id)
@@ -136,28 +140,19 @@ func _render_elements() -> void:
 
 
 func _render_lines() -> void:
-	for child: Node in _lines.get_children():
-		child.queue_free()
+	_clear(_lines)
 	var lines: Array = conv["lines"]
-	for i: int in lines.size():
+	for i: int in range(maxi(0, lines.size() - VISIBLE_LINES), lines.size()):
 		var label := Label.new()
 		label.text = "«%s»" % lines[i]
 		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		label.theme_type_variation = &"PaperLabel" if i == lines.size() - 1 else &"PaperMuted"
 		_lines.add_child(label)
-	_scroll_to_end.call_deferred()
-
-
-## Tras recolocar las líneas (un fotograma), baja hasta la última.
-func _scroll_to_end() -> void:
-	await get_tree().process_frame
-	_lines_scroll.scroll_vertical = int(_lines_scroll.get_v_scroll_bar().max_value)
 
 
 func _render_cards(enabled: bool) -> void:
 	var data := GameState.data
-	for child: Node in _cards.get_children():
-		child.queue_free()
+	_clear(_cards)
 	_cards.visible = enabled
 	if not enabled:
 		return
@@ -240,3 +235,10 @@ func _show_hands(state: String, seconds: float) -> void:
 		_hands_tween = create_tween()
 		_hands_tween.tween_interval(0.6)
 		_hands_tween.tween_callback(_show_hands.bind("wait", 0.0 if reduced else seconds))
+
+
+## Quita los hijos ya (no al final del fotograma), para redibujar sin restos.
+func _clear(box: Node) -> void:
+	for child: Node in box.get_children():
+		box.remove_child(child)
+		child.queue_free()

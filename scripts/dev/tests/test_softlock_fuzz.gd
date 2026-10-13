@@ -1,9 +1,11 @@
 extends "res://scripts/dev/tests/test_suite.gd"
-## Partidas aleatorias (con semilla, reproducibles) con cambios de protagonista
-## y herramientas al azar. En cada paso comprueba que el jugador siempre tenga
-## algo que hacer y que cada bucle termine en un número acotado de pasos.
-## Además, de vez en cuando mira alrededor, abre el mapa y mira otro lugar
-## desde él: nada de eso puede cambiar la partida.
+## Partidas aleatorias (con semilla, reproducibles) con cambios de protagonista,
+## herramientas, conversaciones con cartas al azar, decisiones de quiebre al
+## azar y cambios de ajustes. En cada paso comprueba que el jugador siempre
+## tenga algo que hacer, que cada bucle termine en un número acotado de pasos y
+## que el Velo y la Confianza no se salgan de su rango. Además, de vez en cuando
+## mira alrededor, abre el mapa y mira otro lugar desde él, o cambia un ajuste:
+## nada de eso puede cambiar la partida.
 ## Imprime la semilla de cualquier fallo: para reproducirlo, pon RUNS = 1 y
 ## BASE_SEED = esa semilla.
 
@@ -14,19 +16,24 @@ const MAX_LOOPS_PER_RUN: int = 3
 const SWITCH_CHANCE: float = 0.25
 const TOOL_CHANCE: float = 0.06
 const VIEW_CHANCE: float = 0.12
+const SETTINGS_CHANCE: float = 0.05
 
 
 func test_random_runs_never_softlock() -> bool:
 	var state := new_state()
 	var view := new_place_view(state)
 	var map := new_map_view(state)
-	var stats: Dictionary = {"loops": 0, "steps": 0, "skips": 0, "replays": 0, "looks": 0, "endings": {}}
+	var stats: Dictionary = {"loops": 0, "steps": 0, "skips": 0, "replays": 0, "looks": 0, "endings": {},
+			"conversations": 0, "cards": 0, "breakpoints": 0, "settings": 0}
 	for run: int in RUNS:
 		var seed_value: int = BASE_SEED + run
 		var problem := _play_random_run(state, view, map, seed_value, stats)
 		check(problem == "", "semilla %d: %s" % [seed_value, problem])
 	print("        %d partidas, %d bucles, %d pasos, %d saltos, %d repeticiones, %d vistazos, finales %s" % [RUNS,
 			stats["loops"], stats["steps"], stats["skips"], stats["replays"], stats["looks"], stats["endings"]])
+	print("        %d conversaciones (%d cartas), %d quiebres decididos, %d cambios de ajustes" % [stats["conversations"],
+			stats["cards"], stats["breakpoints"], stats["settings"]])
+	check(stats["conversations"] > 0 and stats["breakpoints"] > 0, "el fuzz juega conversaciones y quiebres")
 	return true
 
 
@@ -53,7 +60,15 @@ func _play_random_run(state: GameStateScript, view: Control, map: Control, seed_
 				stats["looks"] += 1
 				if problem != "":
 					return "bucle %d, %s: %s" % [state.loop_number, GameData.format_time(state.current_time()), problem]
+			if rng.randf() < SETTINGS_CHANCE:
+				problem = _change_a_setting(state, rng)
+				stats["settings"] += 1
+				if problem != "":
+					return "bucle %d, %s: %s" % [state.loop_number, GameData.format_time(state.current_time()), problem]
 			_random_action(state, rng, stats)
+			problem = _range_problem(state)
+			if problem != "":
+				return "bucle %d, %s: %s" % [state.loop_number, GameData.format_time(state.current_time()), problem]
 		stats["loops"] += 1
 		stats["steps"] += steps
 		stats["endings"][state.ending_id()] = stats["endings"].get(state.ending_id(), 0) + 1
@@ -102,14 +117,53 @@ func _random_action(state: GameStateScript, rng: RandomNumberGenerator, stats: D
 		state.skip_to(targets[rng.randi_range(0, targets.size() - 1)])
 		stats["skips"] += 1
 		return
-	var actions := state.get_actions()
-	if actions.is_empty():
+	var command := random_command(state, rng)
+	if command.is_empty():
 		# Akba atrapado: lo que queda es cambiar a Sazil.
 		for actor: String in state.data.protagonist_ids:
 			if not state.sim.actions_for(actor).is_empty():
 				state.switch_to(actor)
 				return
 		return
-	state.perform(actions[rng.randi_range(0, actions.size() - 1)])
+	if command.has("cards"):
+		if command["cards"].is_empty():
+			return
+		stats["conversations"] += 1
+		stats["cards"] += command["cards"].size()
+	if command.has("decision"):
+		stats["breakpoints"] += 1
+	state.perform(command)
 	if rng.randf() < 0.5:
 		state.dismiss_outcome()
+
+
+## Un ajuste al azar (sonido, vibración, quiebres, texto): nunca toca el mundo.
+func _change_a_setting(state: GameStateScript, rng: RandomNumberGenerator) -> String:
+	var before := world_text(state)
+	match rng.randi_range(0, 5):
+		0:
+			state.set_volume(SaveManager.VOLUME_KEYS[rng.randi_range(0, 3)], rng.randf())
+		1:
+			state.set_haptics(SaveManager.HAPTIC_LEVELS[rng.randi_range(0, 2)])
+		2:
+			state.set_breakpoint_mode(SaveManager.BREAKPOINT_MODES[rng.randi_range(0, 1)])
+		3:
+			state.set_breakpoint_time(SaveManager.BREAKPOINT_TIMES[rng.randi_range(0, 2)])
+		4:
+			state.set_mute(rng.randf() < 0.5)
+		_:
+			state.set_text_size(rng.randi_range(0, state.data.text_sizes.size() - 1))
+	return "" if world_text(state) == before else "cambiar un ajuste cambió la partida"
+
+
+## El Velo visible va de 0 a 3 y la Confianza de cada conversación de 0 al máximo.
+func _range_problem(state: GameStateScript) -> String:
+	for person: String in state.data.npc_ids():
+		var level := state.velo_level(person)
+		if level < 0 or level > 3:
+			return "Velo de %s fuera de rango (%d)" % [person, level]
+	for person: String in state.sim.s["conversations"]:
+		var confianza: int = state.sim.s["conversations"][person]["confianza"]
+		if confianza < 0 or confianza > state.data.card_rules["confianza_max"]:
+			return "Confianza de %s fuera de rango (%d)" % [person, confianza]
+	return ""

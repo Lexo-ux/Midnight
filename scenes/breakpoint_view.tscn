@@ -41,7 +41,7 @@ autowrap_mode = 3
 
 [node name="Ring" type="Control" parent="Box"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 560)
+custom_minimum_size = Vector2(0, 360)
 layout_mode = 2
 size_flags_vertical = 3
 mouse_filter = 2

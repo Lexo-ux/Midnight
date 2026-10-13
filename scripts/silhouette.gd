@@ -2,8 +2,7 @@ extends Control
 ## Silueta de una persona, opcionalmente sobre un disco claro (para que se lea
 ## de día y de noche en la UI; en la escena va sin disco). Velo 0: negra con su
 ## rasgo fijo. Velo 1: con los colores de npcs.json. Los niveles 2 y 3 (rostro
-## y retrato) llegarán con las conversaciones: se leerán de `velo.face_path` /
-## `velo.portrait_path` en los datos.
+## y retrato) los dibuja scripts/portrait_view.gd.
 
 const GameData := preload("res://scripts/game_data.gd")
 const BLACK := Color(0.07, 0.07, 0.08)

@@ -77,7 +77,7 @@ static func validate(save: Variant, data: GameData) -> Dictionary:
 	if int(version) == 2:
 		root = _migrate_from_v2(root)
 	if int(version) <= 3:
-		root = _migrate_from_v3(root)
+		root = _migrate_from_v3(root, data)
 	var loop_number := _whole(root.get("loop_number"), 1, 1_000_000)
 	if loop_number == INVALID:
 		return _invalid("loop_number no válido")
@@ -254,12 +254,20 @@ static func _migrate_from_v2(save: Dictionary) -> Dictionary:
 	return migrated
 
 
-## La versión 3 no tenía conversaciones, marcas ni los ajustes nuevos: se
-## empiezan vacíos y los ajustes que falten toman su valor por defecto.
-static func _migrate_from_v3(save: Dictionary) -> Dictionary:
+## De la 3 a la 4: sin marcas ni conversaciones, ajustes nuevos por defecto, y
+## los temas guionizados que pasaron a conversaciones con cartas (Lina, Tun,
+## Beto, Ruth) se quedan en la ruta como «esperar» allí: mismo tiempo y lugar.
+## Lo que ya activaron sigue en las banderas del bucle; al repetir la ruta no se
+## repite.
+static func _migrate_from_v3(save: Dictionary, data: GameData) -> Dictionary:
 	var migrated: Dictionary = save.duplicate(true)
-	if migrated.get("loop") is Dictionary and not migrated["loop"].has("conversations"):
-		migrated["loop"]["conversations"] = {}
+	if migrated.get("loop") is Dictionary:
+		if not migrated["loop"].has("conversations"):
+			migrated["loop"]["conversations"] = {}
+		if migrated["loop"].get("route") is Array:
+			_replace_removed_talks(migrated["loop"]["route"], data)
+	if migrated.get("last_route") is Array:
+		_replace_removed_talks(migrated["last_route"], data)
 	if not migrated.has("marks"):
 		migrated["marks"] = {}
 	if migrated.get("settings") is Dictionary:
@@ -267,6 +275,18 @@ static func _migrate_from_v3(save: Dictionary) -> Dictionary:
 		settings.merge(migrated["settings"], true)
 		migrated["settings"] = settings
 	return migrated
+
+
+static func _replace_removed_talks(route: Array, data: GameData) -> void:
+	for entry: Variant in route:
+		if not entry is Dictionary or not entry.get("command") is Dictionary:
+			continue
+		var command: Dictionary = entry["command"]
+		var id: Variant = command.get("id", "")
+		if command.get("verb", "") == "hablar" and id is String and not data.talks.has(id) and not data.conversations.has(id):
+			command["verb"] = "esperar"
+			command["target"] = ""
+			command["id"] = ""
 
 
 static func _settings(source: Variant, data: GameData) -> Dictionary:

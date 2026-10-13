@@ -241,8 +241,16 @@ func step(command: Dictionary) -> bool:
 	var acted: bool = command.get("verb", "") != ROUTINE_VERB
 	if acted and not exploring and not is_available(actor, command):
 		return false
+	# Cartas solo en conversaciones y decisiones solo en quiebres (si no, la ruta
+	# grabada no se podría volver a cargar).
+	var is_conversation: bool = acted and command["verb"] == "hablar" and data.conversations.has(command["id"])
+	if command.has("cards") and not is_conversation:
+		return false
+	if command.has("decision") and (not GameData.DECISIONS.has(command["decision"]) or command.get("verb", "") != "interactuar"
+			or not data.breakpoint_by_interaction.has(command.get("id", ""))):
+		return false
 	var conversation: Dictionary = {}
-	if acted and command["verb"] == "hablar" and data.conversations.has(command["id"]):
+	if is_conversation:
 		conversation = Conversation.replay(data, command["id"], actor, conversation_context(actor, command["target"]),
 				command.get("cards", []))
 		if conversation.is_empty():
@@ -482,9 +490,9 @@ func _apply(actor: String, command: Dictionary, conversation: Dictionary) -> voi
 func _apply_conversation(actor: String, conv: Dictionary) -> void:
 	var person: String = conv["person"]
 	var conversation: Dictionary = data.conversations[conv["conversation"]]
-	var state: Dictionary = s["conversations"].get(person, {"won": []})
-	state["confianza"] = conv["confianza"]
-	state["closed"] = conv["result"] == "closed"
+	# Mismo orden de claves que al cargar la partida (la ida y vuelta es exacta).
+	var state: Dictionary = {"confianza": conv["confianza"], "closed": conv["result"] == "closed",
+			"won": s["conversations"].get(person, {}).get("won", [])}
 	for clue: String in conv["clues"]:
 		_grant(clue, actor)
 	if conv["result"] == "win":

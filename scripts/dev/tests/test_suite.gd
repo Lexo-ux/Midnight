@@ -112,6 +112,27 @@ func talk(state: GameStateScript, person: String, cards: Array) -> bool:
 			GameData.format_time(state.current_time())])
 
 
+## Una acción al azar del protagonista activo, lista para perform() ({} si no
+## hay ninguna). Las conversaciones con cartas se juegan de verdad con cartas al
+## azar (de 1 a 6, hasta que terminen) y los quiebres llevan una decisión al azar.
+func random_command(state: GameStateScript, rng: RandomNumberGenerator) -> Dictionary:
+	var actions := state.get_actions()
+	if actions.is_empty():
+		return {}
+	var command: Dictionary = actions[rng.randi_range(0, actions.size() - 1)].duplicate()
+	var data := state.data
+	if command["verb"] == "hablar" and data.conversations.has(command["id"]):
+		var conv := state.start_conversation(command["target"])
+		var plays := rng.randi_range(1, 6)
+		while conv["result"] == "" and plays > 0 and not conv["hand"].is_empty():
+			state.play_card(conv, conv["hand"][rng.randi_range(0, conv["hand"].size() - 1)])
+			plays -= 1
+		command["cards"] = conv["played"].duplicate()
+	elif command["verb"] == "interactuar" and data.breakpoint_by_interaction.has(command["id"]):
+		command["decision"] = GameData.DECISIONS[rng.randi_range(0, GameData.DECISIONS.size() - 1)]
+	return command
+
+
 ## Avanza con los dos en su rutina hasta `minute`.
 func routine_until(state: GameStateScript, minute: int) -> void:
 	while state.current_time() < minute and not state.is_loop_over():

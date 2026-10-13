@@ -82,32 +82,35 @@ layout_mode = 2
 theme_type_variation = &"PaperLabel"
 autowrap_mode = 3
 
-[node name="Elements" type="VBoxContainer" parent="Sheet/Box"]
+[node name="Body" type="ScrollContainer" parent="Sheet/Box"]
 unique_name_in_owner = true
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="LinesScroll" type="ScrollContainer" parent="Sheet/Box"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 220)
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="Lines" type="VBoxContainer" parent="Sheet/Box/LinesScroll"]
-unique_name_in_owner = true
+[node name="BodyBox" type="VBoxContainer" parent="Sheet/Box/Body"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_constants/separation = 18
+
+[node name="Elements" type="VBoxContainer" parent="Sheet/Box/Body/BodyBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Lines" type="VBoxContainer" parent="Sheet/Box/Body/BodyBox"]
+unique_name_in_owner = true
+layout_mode = 2
 theme_override_constants/separation = 14
 
-[node name="Hands" type="Control" parent="Sheet/Box"]
+[node name="Hands" type="Control" parent="Sheet/Box/Body/BodyBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 200)
+custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 mouse_filter = 2
 script = ExtResource("4_hands")
 
-[node name="Cards" type="GridContainer" parent="Sheet/Box"]
+[node name="Cards" type="GridContainer" parent="Sheet/Box/Body/BodyBox"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/h_separation = 16

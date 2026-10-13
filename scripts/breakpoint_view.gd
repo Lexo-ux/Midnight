@@ -138,8 +138,8 @@ func _show_choice() -> void:
 
 func _fill_choices() -> void:
 	var data := GameState.data
-	for child: Node in _modes.get_children() + _times.get_children():
-		child.queue_free()
+	_clear(_modes)
+	_clear(_times)
 	for mode: String in SaveManager.BREAKPOINT_MODES:
 		_modes.add_child(_choice_button(data.text("modo_" + mode), GameState.settings["breakpoint_mode"] == mode,
 				func() -> void:
@@ -277,3 +277,10 @@ func _notification(what: int) -> void:
 		NOTIFICATION_APPLICATION_FOCUS_IN, NOTIFICATION_APPLICATION_RESUMED:
 			controller.resume()
 			_after_input()
+
+
+## Quita los hijos ya (no al final del fotograma), para redibujar sin restos.
+func _clear(box: Node) -> void:
+	for child: Node in box.get_children():
+		box.remove_child(child)
+		child.queue_free()

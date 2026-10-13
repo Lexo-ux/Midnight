@@ -140,8 +140,7 @@ func _track(color: Color) -> StyleBoxFlat:
 
 ## Botones de opción (el elegido resaltado).
 func _fill(box: Container, options: Array[Dictionary]) -> void:
-	for child: Node in box.get_children():
-		child.queue_free()
+	_clear(box)
 	for option: Dictionary in options:
 		var button := Button.new()
 		button.text = option["text"]
@@ -151,3 +150,10 @@ func _fill(box: Container, options: Array[Dictionary]) -> void:
 		button.theme_type_variation = &"TabActive" if option["active"] else &""
 		button.pressed.connect(option["action"])
 		box.add_child(button)
+
+
+## Quita los hijos ya (no al final del fotograma), para redibujar sin restos.
+func _clear(box: Node) -> void:
+	for child: Node in box.get_children():
+		box.remove_child(child)
+		child.queue_free()

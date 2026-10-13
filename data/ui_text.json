@@ -117,7 +117,6 @@
   "conv_puerta": "Puerta",
   "conv_roto": "roto",
   "conv_abierta": "abierta",
-  "conv_no_turno": "No gasta turno",
   "conv_ganada": "Puerta abierta",
   "conv_neutral": "Otro rato",
   "conv_cerrada": "Se ha cerrado hasta el próximo bucle",

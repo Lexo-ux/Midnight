@@ -156,20 +156,41 @@ func can_replay() -> bool:
 
 
 ## Repite las acciones del bucle anterior anteriores a `minute`. La simulación
-## es determinista, así que reproduce el mismo bucle.
+## es determinista, así que reproduce el mismo bucle, salvo en lo que cambie lo
+## aprendido: en una conversación, el Cuaderno puede descubrir muros o dar
+## cartas de Conocimiento, y entonces se juegan las cartas grabadas mientras
+## valgan (ver _replayable()).
 func replay_route(minute: int) -> bool:
 	if not can_replay() or minute <= data.loop_start:
 		return false
 	for entry: Dictionary in last_route:
 		if entry["t"] >= minute or is_loop_over():
 			break
-		var ok: bool = sim.switch_to(entry["switch"]) if entry.has("switch") else sim.step(entry["command"])
+		var ok: bool = sim.switch_to(entry["switch"]) if entry.has("switch") else sim.step(_replayable(entry["command"]))
 		if not ok:
 			push_warning("GameState.replay_route: la ruta se separó en %s." % GameData.format_time(entry["t"]))
 			break
 	sim.s["outcome"] = {"lines": [], "clues": []}
 	_after_change()
 	return true
+
+
+## Una orden grabada, lista para repetirla ahora. Una conversación juega sus
+## cartas mientras valgan (hasta que termine o una ya no esté en la mano); si no
+## vale ninguna, se queda en esperar allí: mismo tiempo y mismo lugar.
+func _replayable(command: Dictionary) -> Dictionary:
+	if command.get("verb", "") != "hablar" or not data.conversations.has(command.get("id", "")):
+		return command
+	var actor := active_actor()
+	var conv := Conversation.start(data, command["id"], actor, sim.conversation_context(actor, command["target"]))
+	for card: Variant in command.get("cards", []):
+		if conv["result"] != "" or not card is String or not Conversation.play(data, conv, card):
+			break
+	if conv["played"].is_empty():
+		return {"verb": "esperar", "place": command["place"], "target": "", "id": ""}
+	var replay: Dictionary = command.duplicate()
+	replay["cards"] = conv["played"].duplicate()
+	return replay
 
 
 ## Pide el siguiente nivel de pista de una pregunta. No toca la simulación.

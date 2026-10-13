@@ -1,7 +1,10 @@
 extends "res://scripts/dev/tests/test_suite.gd"
-## Determinismo: las mismas acciones dan el mismo estado; «Repetir mi ruta»
-## reproduce el bucle anterior hasta la hora elegida; «Saltar a la hora» llega
-## al mismo estado que esperar paso a paso.
+## Determinismo (también con conversaciones con cartas y decisiones de quiebre
+## al azar): las mismas acciones dan el mismo estado; «Repetir mi ruta»
+## reproduce el bucle anterior hasta la hora elegida (con conversaciones, lo
+## aprendido puede cambiar cómo acaban, pero se repiten las mismas acciones a
+## las mismas horas y en los mismos sitios); «Saltar a la hora» llega al mismo
+## estado que esperar paso a paso.
 
 const SEEDS: Array[int] = [7, 52, 1977, 20261012]
 
@@ -32,7 +35,7 @@ func test_repeat_route_reproduces_previous_loop() -> bool:
 		while not state.is_loop_over():
 			if state.current_time() == hour and at_hour == "":
 				at_hour = world_text(state)
-			_random_step(state, rng)
+			_random_step(state, rng, false)
 		state.start_next_loop()
 		check(state.can_replay(), "semilla %d: al empezar el bucle se puede repetir la ruta" % seed_value)
 		check(state.replay_route(hour), "semilla %d: la ruta se repite" % seed_value)
@@ -40,6 +43,45 @@ func test_repeat_route_reproduces_previous_loop() -> bool:
 		check(world_text(state) == at_hour, "semilla %d: la repetición reproduce el mundo del bucle anterior" % seed_value)
 		check(not state.can_replay(), "semilla %d: solo se repite al empezar un bucle" % seed_value)
 		free_state(state)
+	return true
+
+
+## Con conversaciones, lo aprendido puede abrir antes una puerta (p. ej. Beto
+## se va de la plaza avisado) y entonces la ruta se separa y para ahí. Lo que
+## se repite siempre son las mismas acciones a las mismas horas y en los mismos
+## sitios; si llega a la hora, los dos están donde estaban.
+func test_repeat_route_with_conversations_keeps_times_and_places() -> bool:
+	var conversations := 0
+	var reached := 0
+	for seed_value: int in SEEDS:
+		var state := new_state()
+		var hour := GameData.parse_time("21:00")
+		var positions := {}
+		var rng := RandomNumberGenerator.new()
+		rng.seed = seed_value
+		while not state.is_loop_over():
+			if state.current_time() == hour and positions.is_empty():
+				positions = {"sazil": state.position_of("sazil"), "akba": state.position_of("akba")}
+			conversations += int(_random_step(state, rng).has("cards"))
+		var original: Array = state.sim.s["route"].duplicate(true)
+		state.start_next_loop()
+		check(state.replay_route(hour), "semilla %d: la ruta se repite" % seed_value)
+		var replayed: Array = state.sim.s["route"]
+		check(not replayed.is_empty(), "semilla %d: se repite algo" % seed_value)
+		for i: int in replayed.size():
+			var a: Dictionary = original[i]
+			var b: Dictionary = replayed[i]
+			var same: bool = a["t"] == b["t"] and a.has("switch") == b.has("switch")
+			if same and a.has("command"):
+				same = a["command"]["place"] == b["command"]["place"]
+			check(same, "semilla %d: el paso %d se repite a la misma hora y en el mismo sitio" % [seed_value, i])
+		if state.current_time() == hour:
+			reached += 1
+			check(state.position_of("sazil") == positions["sazil"] and state.position_of("akba") == positions["akba"],
+					"semilla %d: los dos acaban donde estaban" % seed_value)
+		free_state(state)
+	check(conversations > 0, "las rutas al azar tienen conversaciones")
+	print("        %d de %d repeticiones llegan a las 21:00" % [reached, SEEDS.size()])
 	return true
 
 
@@ -66,12 +108,14 @@ func _random_loop(state: GameStateScript, seed_value: int) -> Array[Dictionary]:
 	return commands
 
 
-func _random_step(state: GameStateScript, rng: RandomNumberGenerator) -> Dictionary:
+## Un paso al azar; sin `conversations`, las conversaciones con cartas se cambian por la rutina.
+func _random_step(state: GameStateScript, rng: RandomNumberGenerator, conversations: bool = true) -> Dictionary:
 	if rng.randf() < 0.3:
 		var actor: String = state.data.protagonist_ids[rng.randi_range(0, 1)]
 		state.switch_to(actor)
 		return {"switch": actor}
-	var actions := state.get_actions()
-	var command: Dictionary = {"verb": Simulation.ROUTINE_VERB} if actions.is_empty() else actions[rng.randi_range(0, actions.size() - 1)]
+	var command := random_command(state, rng)
+	if command.is_empty() or (command.has("cards") and (command["cards"].is_empty() or not conversations)):
+		command = {"verb": Simulation.ROUTINE_VERB}
 	state.perform(command)
 	return command
