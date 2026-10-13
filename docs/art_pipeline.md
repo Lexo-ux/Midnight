@@ -1,12 +1,18 @@
 # Arte: cómo entra en el juego
 
-El juego funciona sin arte: cada ranura que falta se dibuja con un provisional (formas planas con la etiqueta «PROVISIONAL · ranura») y avisa una sola vez en la consola. En cuanto aparece el archivo de una ranura, el juego lo usa.
+El juego funciona sin arte. Mientras falta el de una ranura:
+
+1. Si la ranura es `"provisional": true`, se usa su imagen provisional generada (`assets/art_provisional/<misma ruta>`, estilo rotulador). Se rehacen con `godot --headless --path . --script res://scripts/dev/make_placeholder_art.gd` (`-- --check` solo comprueba; `--force` rehace; nunca toca `assets/art/`).
+2. Si no, se dibuja en código (formas planas con la etiqueta «PROVISIONAL · ranura») y avisa una sola vez en la consola.
+
+En cuanto aparece el archivo de verdad de una ranura, el juego lo usa en lugar del provisional, sin tocar código. Lo que falta está en `docs/art_todo.md`.
 
 ## Carpetas
 
 - `assets/art_incoming/`: aquí se deja lo que llega (PNG, JPG o WebP, tal cual sale del generador). Está en `.gitignore` y tiene un `.gdignore`: no se versiona ni entra en el APK.
 - `assets/art/`: lo que usa el juego, ya preparado por la herramienta. Sí se versiona.
-- `data/art_manifest.json`: la lista de ranuras, con su ruta, tamaño, tipo y qué hacer si falta.
+- `assets/art_provisional/`: los provisionales generados (sí se versionan; dejan de usarse solos).
+- `data/art_manifest.json`: la lista de ranuras, con su ruta, tamaño, tipo, qué hacer si falta y si tiene provisional.
 
 ## Nombres
 
@@ -19,7 +25,12 @@ Cada archivo se llama como su ranura: `<id>.png` (o `.jpg`, `.webp`). Por ejempl
 | `<lugar>_fg` | 2880×1920 | recorte |
 | `<lugar>_akba_overlay` (sobre negro puro) | 2880×1920 | aditivo |
 | `portrait_<sazil|akba>_idle`, `_hand_raised` | 1024×1024 | recorte |
-| `hands_<sazil|akba>_<idle|hold_letter|point|light|reach|wait>` | 1080×720 | recorte |
+| `hands_<sazil|akba>_<idle|hold_letter|point|light|reach|wait|grip>` | 1080×810 (4:3) | recorte |
+| `map_<relojeria|mercado|plaza|unexplored>` | 512×512 | recorte |
+| `hotspot_look`, `hotspot_fissure` | 256×256 | recorte |
+| `loop_reset_clock` (esfera sin agujas) | 1024×1024 | recorte |
+| `ending_<un_buen_dia|otra_vez>` | 1080×720 | opaco |
+| `app_icon` / `app_splash` | 1024×1024 / 1080×1920 | opaco |
 
 Los lugares son `relojeria`, `mercado` y `plaza`.
 
@@ -35,7 +46,7 @@ godot --headless --path . --script res://scripts/dev/ingest_art.gd
 godot --headless --path . --import
 ```
 
-La primera orden prepara el arte e imprime qué ranuras están, cuáles faltan, qué no encaja, qué archivos no tienen ranura y cuántos MB ocupa (límite: 60 MB). Es idempotente: si la salida es más nueva que la entrada, no la rehace; añade `-- --force` para rehacer todo. La segunda orden importa el arte (o abre el editor).
+La primera orden prepara el arte e imprime qué ranuras están, cuáles faltan (y cuáles de ellas enseñan su provisional), qué no encaja, qué archivos no tienen ranura (con la que parece, p. ej. `objects.png → ¿plaza_fg?`; no se renombra nada) y cuántos MB ocupa (límite: 60 MB). Con `-- --check` no escribe nada: es para comprobar antes. Es idempotente: si la salida es más nueva que la entrada, no la rehace; añade `-- --force` para rehacer todo. La segunda orden importa el arte (o abre el editor).
 
 La primera vez, la herramienta también escribe los ajustes de importación. Los fondos, la capa de Akba y los recortes grandes (`mid`, `fg`) llevan compresión VRAM sin mipmaps: en Android, un fondo es ETC2 de 4 bits por píxel (unos 2,8 MB). Retratos y manos van sin pérdida. Si la compresión deja marcas en un recorte, se cambia a «Lossless» en el editor. Después manda el editor.
 

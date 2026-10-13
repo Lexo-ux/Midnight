@@ -3,10 +3,16 @@ extends RefCounted
 ## superposición de Akba de cada lugar, retratos y manos de los protagonistas.
 ##
 ## El arte de verdad llega más tarde (scripts/dev/ingest_art.gd lo prepara en
-## assets/art/). Mientras falte un archivo, la UI dibuja un provisional y aquí
-## se avisa UNA vez por ranura y sesión. Excepción: la capa `mid` es opcional;
-## si un lugar ya tiene fondos de verdad y no tiene `mid`, no se dibuja nada y
-## no se avisa.
+## assets/art/). Mientras falte, por orden:
+##   1. si la ranura es `"provisional": true` y existe su imagen provisional
+##      (assets/art_provisional/<misma ruta>, la genera
+##      scripts/dev/make_placeholder_art.gd), se usa esa;
+##   2. si no, la UI dibuja un provisional y aquí se avisa UNA vez por ranura y
+##      sesión. Excepción: la capa `mid` es opcional; si un lugar ya tiene
+##      fondos de verdad y no tiene `mid` (ni provisional), no se dibuja nada y
+##      no se avisa.
+## El arte de verdad siempre gana: al ingerirlo, el provisional deja de usarse
+## sin tocar código.
 ##
 ## Las texturas de los lugares se cargan solo al entrar en uno y se sueltan al
 ## cambiar de lugar (memoria de un Android de gama media).
@@ -21,10 +27,12 @@ const EXTENSIONS: Dictionary = {"opaque": ["jpg", "png", "webp"], "cutout": ["pn
 var errors: PackedStringArray = []
 var root: String = ""
 var incoming: String = ""
+## Carpeta de los provisionales generados (misma ruta relativa que el arte de verdad).
+var provisional_root: String = ""
 var ratio_tolerance: float = 0.02
 var jpg_quality: float = 0.9
 var budget_mb: int = 60
-## id -> {id, path, relative, size, kind, fallback, place, layer, actor, pose, hand_state, focus}
+## id -> {id, path, relative, size, kind, fallback, provisional, place, layer, actor, pose, hand_state, ending, focus}
 var slots: Dictionary = {}
 var slot_ids: Array[String] = []
 ## Ranuras de las que ya se avisó en esta sesión.
@@ -58,11 +66,14 @@ func load_source(source: Variant) -> bool:
 		return _fail()
 	root = str(source.get("root", ""))
 	incoming = str(source.get("incoming", ""))
+	provisional_root = str(source.get("provisional_root", ""))
 	ratio_tolerance = float(source.get("ratio_tolerance", 0.02))
 	jpg_quality = float(source.get("jpg_quality", 0.9))
 	budget_mb = int(source.get("budget_mb", 60))
 	if not root.begins_with("res://") or not root.ends_with("/") or not incoming.begins_with("res://"):
 		errors.append("art_manifest.json: \"root\" e \"incoming\" deben ser carpetas res://.../")
+	if provisional_root != "" and (not provisional_root.begins_with("res://") or not provisional_root.ends_with("/")):
+		errors.append("art_manifest.json: \"provisional_root\" debe ser una carpeta res://.../")
 	var paths: Dictionary = {}
 	var list: Variant = source.get("slots")
 	if not list is Array or list.is_empty():
@@ -107,8 +118,43 @@ static func face_slot(person: String, level: int) -> String:
 	return "npc_%s_velo%d" % [person, level]
 
 
+## Hay arte de verdad para la ranura.
 func has_file(slot_id: String) -> bool:
 	return slots.has(slot_id) and ResourceLoader.exists(slots[slot_id]["path"])
+
+
+## Ruta del provisional generado de la ranura ("" si no es provisional).
+func provisional_path(slot_id: String) -> String:
+	if not slots.has(slot_id) or not slots[slot_id]["provisional"] or provisional_root == "":
+		return ""
+	return provisional_root + slots[slot_id]["relative"]
+
+
+func has_provisional(slot_id: String) -> bool:
+	var path := provisional_path(slot_id)
+	return path != "" and ResourceLoader.exists(path)
+
+
+## Lo que se usa para la ranura: el arte de verdad, si no su provisional, si no "".
+func resolve_path(slot_id: String) -> String:
+	if has_file(slot_id):
+		return slots[slot_id]["path"]
+	if has_provisional(slot_id):
+		return provisional_path(slot_id)
+	return ""
+
+
+## "real", "provisional" (imagen generada) o "drawn" (se dibuja en código).
+func source_of(slot_id: String) -> String:
+	if has_file(slot_id):
+		return "real"
+	return "provisional" if has_provisional(slot_id) else "drawn"
+
+
+## Textura de cualquier ranura (null si no hay ni arte ni provisional; sin aviso).
+func texture_for(slot_id: String) -> Texture2D:
+	var path := resolve_path(slot_id)
+	return load(path) as Texture2D if path != "" else null
 
 
 ## Los tres fondos de `place` tienen arte de verdad.
@@ -133,8 +179,9 @@ func enter_place(place: String) -> Dictionary:
 		if not slots.has(slot_id):
 			_place_layers[layer] = {"texture": null, "placeholder": true}
 			continue
-		if has_file(slot_id):
-			_place_layers[layer] = {"texture": load(slots[slot_id]["path"]) as Texture2D, "placeholder": false}
+		var path := resolve_path(slot_id)
+		if path != "":
+			_place_layers[layer] = {"texture": load(path) as Texture2D, "placeholder": false}
 		elif slots[slot_id]["fallback"] == "placeholder_unless_real_bg" and real_bg:
 			_place_layers[layer] = {"texture": null, "placeholder": false}
 		else:
@@ -156,13 +203,14 @@ func current_place() -> String:
 func small_texture(slot_id: String) -> Texture2D:
 	if _small.has(slot_id):
 		return _small[slot_id]
-	var texture: Texture2D = null
-	if has_file(slot_id):
-		texture = load(slots[slot_id]["path"]) as Texture2D
+	var found: Texture2D = null
+	var path := resolve_path(slot_id)
+	if path != "":
+		found = load(path) as Texture2D
 	elif slots.has(slot_id):
 		_warn_missing(slot_id)
-	_small[slot_id] = texture
-	return texture
+	_small[slot_id] = found
+	return found
 
 
 ## Recorte de la cara de un retrato, en píxeles de la textura.
@@ -203,6 +251,9 @@ func _parse_slot(raw: Variant, where: String) -> Dictionary:
 	if not FALLBACKS.has(raw.get("fallback")):
 		errors.append("%s: \"fallback\" debe ser uno de %s." % [where, FALLBACKS])
 		return {}
+	if not raw.get("provisional", false) is bool:
+		errors.append(where + ": \"provisional\" debe ser true o false.")
+		return {}
 	var focus := Rect2(0.275, 0.0, 0.45, 0.45)
 	if raw.has("focus"):
 		var values: Variant = raw["focus"]
@@ -212,8 +263,9 @@ func _parse_slot(raw: Variant, where: String) -> Dictionary:
 			return {}
 		focus = Rect2(values[0], values[1], values[2], values[3])
 	return {"id": id, "path": root + relative, "relative": relative, "size": Vector2i(int(size[0]), int(size[1])), "kind": kind,
-			"fallback": raw["fallback"], "place": raw.get("place", ""), "layer": raw.get("layer", ""),
-			"actor": raw.get("actor", ""), "pose": raw.get("pose", ""), "hand_state": raw.get("hand_state", ""), "focus": focus}
+			"fallback": raw["fallback"], "provisional": raw.get("provisional", false), "place": raw.get("place", ""),
+			"layer": raw.get("layer", ""), "actor": raw.get("actor", ""), "pose": raw.get("pose", ""),
+			"hand_state": raw.get("hand_state", ""), "ending": raw.get("ending", ""), "focus": focus}
 
 
 static func _path_ok(path: String, kind: String) -> bool:

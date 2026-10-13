@@ -2,6 +2,9 @@ extends SceneTree
 ## Ingesta del arte sin pantalla (ver docs/art_pipeline.md):
 ##   godot --headless --path . --script res://scripts/dev/ingest_art.gd
 ##   godot --headless --path . --script res://scripts/dev/ingest_art.gd -- --force
+##   godot --headless --path . --script res://scripts/dev/ingest_art.gd -- --check
+## Con --check no escribe nada: dice qué ingeriría, qué ranuras enseñan aún su
+## provisional y a qué ranura se parece cada archivo mal nombrado.
 ## Lee assets/art_incoming/<ranura>.png|jpg|webp, deja el resultado en
 ## assets/art/ e imprime qué ranuras están, cuáles faltan y qué no encaja.
 ## Después, abre el editor (o `godot --headless --path . --import`) para importar.
@@ -27,13 +30,15 @@ func _run() -> void:
 		return
 	var ingest := ArtIngest.new(library)
 	ingest.force = OS.get_cmdline_user_args().has("--force")
+	ingest.dry_run = OS.get_cmdline_user_args().has("--check")
 	var started := Time.get_ticks_msec()
 	var report := ingest.run(library.incoming, library.root)
 	var lines: PackedStringArray = []
-	for key: String in ["ingested", "up_to_date", "present", "missing", "mismatched", "unmatched", "failed"]:
+	for key: String in ["ingested", "up_to_date", "present", "missing", "provisional", "mismatched", "unmatched", "failed"]:
 		var items: Array = report[key]
 		lines.append("%-11s %2d  %s" % [key, items.size(), ", ".join(PackedStringArray(items))])
-	print("Ingesta de arte (%.0f s)" % ((Time.get_ticks_msec() - started) / 1000.0))
+	print("Ingesta de arte%s (%.0f s)" % [" (solo comprobar: «ingested» es lo que se haría)" if ingest.dry_run else "",
+			(Time.get_ticks_msec() - started) / 1000.0])
 	print("\n".join(lines))
 	var megabytes: float = report["bytes"] / 1048576.0
 	print("Arte en %s: %.1f MB (límite %d MB)%s" % [library.root, megabytes, library.budget_mb,

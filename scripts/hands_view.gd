@@ -1,17 +1,20 @@
 extends Control
 ## Primera persona: solo se ven las manos del protagonista controlado, abajo y
 ## en el centro. El estado (idle, hold_letter, point, light, reach, wait) sale de
-## su última acción (grip: al sostener en un quiebre) (data/scenes.json, hands.by_verb). Si hay arte en la ranura
-## `hands_<actor>_<estado>` se usa; si no, manos planas dibujadas aquí:
-## Sazil, cartera (correa de la bolsa, cartas); Akba, vigilante (mangas del
-## abrigo y el colgante poliédrico que brilla). Son provisionales.
+## su última acción (grip: al sostener en un quiebre) (data/scenes.json, hands.by_verb).
+## La imagen es la de la ranura `hands_<actor>_<estado>` (4:3): la de verdad o,
+## mientras no llegue, su provisional generado (assets/art_provisional/). Si no
+## hay ninguna, manos planas dibujadas aquí: Sazil, cartera (correa de la bolsa,
+## cartas); Akba, vigilante (mangas del abrigo y el colgante poliédrico que brilla).
 ## Nunca recibe toques: no tapa los botones de acción.
 
 const ArtLibrary := preload("res://scripts/art_library.gd")
 const GameData := preload("res://scripts/game_data.gd")
 
-## Espacio de diseño de las manos (se escala al tamaño del control).
-const DESIGN := Vector2(1080, 720)
+## Espacio de diseño de las manos (el de la ranura, 4:3; se escala al control).
+const DESIGN := Vector2(1080, 810)
+## Las manos dibujadas se pensaron en 1080×720: bajan para apoyarse en el borde.
+const DRAWN_OFFSET: float = 90.0
 const SKIN := {"sazil": Color("f2c9b0"), "akba": Color("c9d9cc")}
 const SLEEVE := {"sazil": Color("f4f1f8"), "akba": Color("1f2a33")}
 const OUTLINE := Color("1a1420")
@@ -90,7 +93,7 @@ func _draw() -> void:
 	if _texture_rect.texture != null:
 		return
 	var k := _scale()
-	draw_set_transform(Vector2((size.x - DESIGN.x * k) * 0.5, size.y - DESIGN.y * k + _dip * DROP * k), 0.0, Vector2(k, k))
+	draw_set_transform(Vector2((size.x - DESIGN.x * k) * 0.5, size.y - DESIGN.y * k + (DRAWN_OFFSET + _dip * DROP) * k), 0.0, Vector2(k, k))
 	var akba: bool = _actor == "akba"
 	if not akba:
 		# La correa de la bolsa de correo cruza por la izquierda.
