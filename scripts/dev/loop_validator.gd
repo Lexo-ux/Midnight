@@ -15,9 +15,16 @@ extends RefCounted
 ## Puntos interactivos (data/scenes.json): tocarlos es «observar» el lugar, así
 ## que aquí se anota qué pista da observar cada lugar, con qué mirada y a qué
 ## hora, y se comprueba que cada punto revele su pista dentro de su ventana.
+##
+## Conversaciones con cartas: cada una se explora como «solo escuchar» (no abre
+## ni cierra nada, descubre lo que pueda) y como cada forma de ganar que
+## encuentre Conversation.solve() con las cartas y el Cuaderno de ese momento.
+## Los quiebres: «sostuvo» es la interacción; «soltó» deja el mismo estado que
+## esperar allí, que ya se explora.
 
 const GameData := preload("res://scripts/game_data.gd")
 const Simulation := preload("res://scripts/simulation.gd")
+const Conversation := preload("res://scripts/conversation.gd")
 
 const MAX_PASSES: int = 8
 
@@ -72,6 +79,7 @@ func explore_all(banned: Dictionary = {}, start_cuaderno: Dictionary = {}) -> Di
 	observed.clear()
 	var clues: Dictionary = {}
 	var endings: Dictionary = {}
+	var doors: Dictionary = {}
 	var total_states: int = 0
 	var passes: int = 0
 	for pass_number: int in range(1, MAX_PASSES + 1):
@@ -84,13 +92,16 @@ func explore_all(banned: Dictionary = {}, start_cuaderno: Dictionary = {}) -> Di
 			if key.begins_with("ending:"):
 				if not endings.has(key.substr(7)):
 					endings[key.substr(7)] = pass_number
+			elif key.begins_with("door:"):
+				if not doors.has(key.substr(5)):
+					doors[key.substr(5)] = pass_number
 			elif not clues.has(key):
 				clues[key] = pass_number
 				cuaderno[key] = {"loop": pass_number, "by": data.start_active, "time": data.loop_start}
 				changes_next_loop = changes_next_loop or data.referenced_clues.has(key)
 		if not changes_next_loop:
 			break
-	return {"clues": clues, "endings": endings, "passes": passes, "states": total_states}
+	return {"clues": clues, "endings": endings, "doors": doors, "passes": passes, "states": total_states}
 
 
 ## Comprueba todo y devuelve {problems, result}. Con `start_cuaderno` se parte de
@@ -110,6 +121,14 @@ func validate(start_cuaderno: Dictionary = {}) -> Dictionary:
 		if not result["endings"].has(ending["id"]):
 			problems.append("el final \"%s\" es inalcanzable dentro de la ventana %s-%s." % [
 				ending["id"], GameData.format_time(data.loop_start), GameData.format_time(data.day_end)])
+	for id: String in data.conversation_elements:
+		var element: Dictionary = data.conversation_elements[id]
+		if element["kind"] == "door" and not result["doors"].has(id):
+			problems.append("la puerta \"%s\" de %s no se abre por ningún camino." % [id, element["person"]])
+	for door: String in data.door_sources:
+		for clue: String in data.door_sources[door]:
+			if not result["clues"].has(clue):
+				problems.append("la carta de Conocimiento \"%s\" (puerta \"%s\") sale de una pista inalcanzable." % [clue, door])
 	result["hotspot_clues"] = {}
 	for id: String in data.hotspots:
 		var hotspot: Dictionary = data.hotspots[id]
@@ -154,6 +173,12 @@ func clue_graph_markdown(result: Dictionary) -> String:
 	for location_id: String in data.location_ids:
 		for variant: Dictionary in data.locations[location_id]["observe"]:
 			sources.append({"if": variant["if"], "effects": {"set": [], "clues": variant["clues"]}})
+	for id: String in data.conversation_elements:
+		var element: Dictionary = data.conversation_elements[id]
+		if element["kind"] == "door":
+			sources.append({"if": element["if"], "effects": element["effects"]})
+			for clue: String in data.door_sources.get(id, []):
+				sources.append({"if": {"clue": clue}, "effects": element["effects"]})
 	for event: Dictionary in data.events:
 		for variant: Dictionary in event["variants"]:
 			var witnessed: Array = []
@@ -194,6 +219,9 @@ func _successor_commands(sim: Simulation, state: Dictionary, banned: Dictionary)
 		for action: Dictionary in sim.actions_for(actor):
 			if banned.has(action["id"]) or banned.has("%s:%s" % [action["verb"], action["id"]]):
 				continue
+			if action["verb"] == "hablar" and data.conversations.has(action["id"]):
+				commands.append_array(_conversation_commands(sim, actor, action, banned, waited))
+				continue
 			if not sim.is_pure_action(action):
 				commands.append({"actor": actor, "command": action})
 				continue
@@ -206,6 +234,44 @@ func _successor_commands(sim: Simulation, state: Dictionary, banned: Dictionary)
 				commands.append({"actor": actor, "command": {"verb": "esperar", "place": action["place"], "target": "", "id": ""}})
 	sim.s["active"] = state["active"]
 	return commands
+
+
+## Una conversación como órdenes: solo escuchar y cada forma de ganar que no
+## esté prohibida. Solo escuchar es una acción pura (pistas y nada más) salvo
+## que deje una bandera de confianza nueva; entonces se simula.
+func _conversation_commands(sim: Simulation, actor: String, action: Dictionary, banned: Dictionary,
+		waited: Dictionary) -> Array[Dictionary]:
+	var commands: Array[Dictionary] = []
+	var context := sim.conversation_context(actor, action["target"])
+	var listening := Conversation.listen(data, action["id"], actor, context)
+	if not listening["cards"].is_empty():
+		if _sets_new_trust(sim, action["id"], actor, listening["confianza"]):
+			var command: Dictionary = action.duplicate()
+			command["cards"] = listening["cards"]
+			commands.append({"actor": actor, "command": command})
+		else:
+			for clue: String in listening["clues"]:
+				sim.found[clue] = true
+			if not waited.has(action["place"]):
+				waited[action["place"]] = true
+				commands.append({"actor": actor, "command": {"verb": "esperar", "place": action["place"], "target": "", "id": ""}})
+	for outcome: Dictionary in Conversation.solve(data, action["id"], actor, context):
+		if banned.has("door:" + outcome["door"]):
+			continue
+		var command: Dictionary = action.duplicate()
+		command["cards"] = outcome["cards"]
+		commands.append({"actor": actor, "command": command})
+	return commands
+
+
+func _sets_new_trust(sim: Simulation, conversation_id: String, actor: String, confianza: int) -> bool:
+	var trust: Variant = data.conversations[conversation_id]["trust"]
+	if trust == null or trust["actor"] != actor or confianza < trust["min"]:
+		return false
+	for flag: String in trust["set"]:
+		if not sim.s["flags"].has(flag):
+			return true
+	return false
 
 
 ## Horizonte de cada bandera: la condición que la lee más tarde. Un tramo de
@@ -243,6 +309,17 @@ func _compute_horizons() -> Dictionary:
 			_note(result, variant["if"], live)
 	for ending: Dictionary in data.endings:
 		_note(result, ending["if"], end)
+	for id: String in data.conversation_elements:
+		var element: Dictionary = data.conversation_elements[id]
+		if element["kind"] == "door":
+			_note(result, element["if"], _live_until(element["if"], end))
+	for id: String in data.conversations:
+		for line: Dictionary in data.conversations[id]["silence"]:
+			_note(result, line["if"], end)
+	for id: String in data.npc_ids():
+		var velo3: Variant = data.people[id]["velo3"]
+		if velo3 != null:
+			_note(result, velo3["saved_if"], end)
 	return result
 
 

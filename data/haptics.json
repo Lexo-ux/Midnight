@@ -1,0 +1,11 @@
+{
+  "levels": { "off": 0.0, "low": 0.5, "normal": 1.0 },
+  "patterns": {
+    "switch": [ [ 0, 18, 0.5 ] ],
+    "card": [ [ 0, 10, 0.3 ] ],
+    "sustain_pulse": [ [ 0, 22, 0.35 ] ],
+    "success": [ [ 0, 40, 0.7 ], [ 120, 40, 0.7 ] ],
+    "let_go": [ [ 0, 260, 0.8 ] ]
+  },
+  "sustain_interval_ms": { "start": 900, "end": 260 }
+}

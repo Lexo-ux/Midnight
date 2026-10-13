@@ -103,6 +103,15 @@ func act(state: GameStateScript, verb: String, place: String, target: String = "
 			GameData.format_time(state.current_time())])
 
 
+## Una conversación con cartas con `person` (donde esté), con el protagonista
+## activo. Falla el test si no se puede.
+func talk(state: GameStateScript, person: String, cards: Array) -> bool:
+	var ok := state.perform({"verb": "hablar", "place": state.position_of(person), "target": person,
+			"id": state.data.conversation_by_person[person], "cards": cards})
+	return check(ok, "%s no pudo hablar con %s jugando %s a las %s" % [state.active_actor(), person, cards,
+			GameData.format_time(state.current_time())])
+
+
 ## Avanza con los dos en su rutina hasta `minute`.
 func routine_until(state: GameStateScript, minute: int) -> void:
 	while state.current_time() < minute and not state.is_loop_over():

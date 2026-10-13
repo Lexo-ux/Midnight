@@ -4,7 +4,7 @@
   "expected_loop": 1,
   "steps": [
     { "act": { "verb": "observar", "place": "mercado", "target": "", "id": "" } },
-    { "act": { "verb": "hablar", "place": "mercado", "target": "beto", "id": "beto_titular" } },
+    { "act": { "verb": "hablar", "place": "mercado", "target": "beto", "id": "conv_beto", "cards": [ "silencio" ] } },
     { "switch": "akba" },
     { "act": { "verb": "observar", "place": "relojeria", "target": "", "id": "" } },
     { "skip": "24:00" }

@@ -1,31 +1,316 @@
 {
   "clues": [
-    { "id": "hecho_llegada_marcos", "type": "Hecho", "title": "El hombre del farol", "text": "Marcos, capitán de los Cazadores, llega en el tren de las 14:00.", "person": "marcos", "place": "plaza", "time": "14:00" },
-    { "id": "hecho_marcos_sospecha", "type": "Hecho", "title": "Preguntas en el mercado", "text": "Marcos pregunta por el vendedor cuyos titulares se cumplen. Sospecha de Beto.", "person": "marcos", "place": "mercado", "time": "14:30" },
-    { "id": "hecho_grieta_dormida", "type": "Hecho", "title": "Una grieta dormida", "text": "Antes de las 15:00 hay una grieta dormida en el patio de la relojería. Akba puede verla porque es un interior.", "place": "relojeria", "time": "14:00" },
-    { "id": "hecho_fisura_patio", "type": "Hecho", "title": "La fisura de las tres", "text": "A las 15:00 se abre una fisura en el patio de la relojería. Si Lina está ahí, queda al borde.", "person": "lina", "place": "relojeria", "time": "15:00" },
-    { "id": "hecho_lina_desaparece", "type": "Hecho", "title": "Lina no vuelve", "text": "A las 15:30 la fisura se lleva a Lina, salvo que alguien la sostenga a las 15:00.", "person": "lina", "place": "relojeria", "time": "15:30" },
-    { "id": "hecho_puesto_vacio", "type": "Hecho", "title": "El puesto vacío", "text": "El puesto de Lina queda tapado con un trapo. Nadie la vio volver de la relojería.", "person": "lina", "place": "mercado", "time": "15:00" },
-    { "id": "hecho_ruth_otra_vez", "type": "Hecho", "title": "«Otra vez»", "text": "Ruth murmura «otra vez» sin darse cuenta, sobre todo al cerrar a las 15:30.", "person": "ruth", "place": "relojeria", "time": "15:30" },
-    { "id": "hecho_marcos_va_por_beto", "type": "Hecho", "title": "La patrulla", "text": "A las 21:00 Marcos patrulla la plaza y se lleva a Beto media hora después.", "person": "beto", "place": "plaza", "time": "21:00" },
-    { "id": "hecho_tun_herido", "type": "Hecho", "title": "Tun, herido", "text": "Tun sale a defender a Beto y Marcos lo hiere en el brazo.", "person": "tun", "place": "plaza", "time": "21:30" },
-    { "id": "hecho_marcos_busca", "type": "Hecho", "title": "Sigue el Rastro", "text": "Si no encuentra a quién detener y hay Rastro, Marcos sale a buscar a Akba.", "person": "marcos", "place": "plaza", "time": "21:00" },
-    { "id": "hecho_akba_atrapado", "type": "Hecho", "title": "Atrapado", "text": "Con el Rastro al máximo, o con Marcos buscándolo, los Cazadores encuentran a Akba allí donde esté.", "person": "marcos" },
-    { "id": "secreto_pedido_tachado", "type": "Secreto", "title": "La línea tachada", "text": "Al pie del pedido de pan para Lina, Ruth escribió «no vengas tú» y lo tachó.", "person": "ruth" },
-    { "id": "secreto_libreta_tun", "type": "Secreto", "title": "La libreta de Tun", "text": "Ruth dice cada día las mismas frases a la misma hora. Tun las anota todas.", "person": "tun" },
-    { "id": "rumor_titular_panadera", "type": "Rumor", "title": "El titular de Beto", "text": "«El patio de la relojería se traga a una panadera a las tres.» Beto dice que es ficción. Casi siempre.", "person": "beto" },
-    { "id": "rumor_cazadores", "type": "Rumor", "title": "El farol que busca", "text": "Un capitán con farol busca a quien huele a Umbral.", "person": "marcos" },
-    { "id": "rumor_patio_tres", "type": "Rumor", "title": "El patio cerrado", "text": "Ruth cierra el patio a partir de las tres, siempre, y no sabe por qué.", "person": "ruth", "place": "relojeria" },
-    { "id": "rumor_frio_callejon", "type": "Rumor", "title": "Un frío que camina", "text": "Un frío baja del mercado hacia la relojería. Solo Akba lo nota.", "place": "mercado" },
-    { "id": "rumor_relojes_atrasados", "type": "Rumor", "provisional": true, "title": "Relojes que se atrasan", "text": "En la relojería todos los relojes se atrasan un poco, y ninguno está de acuerdo con otro.", "person": "ruth", "place": "relojeria" },
-    { "id": "rumor_mercado_chismes", "type": "Rumor", "provisional": true, "title": "Chismes a media voz", "text": "En el mercado se regatea y se chismea a media voz. Lina le habla a la masa como a una hija.", "person": "lina", "place": "mercado" },
-    { "id": "rumor_plaza_siempre", "type": "Rumor", "provisional": true, "title": "Como siempre", "text": "En la plaza todo está como siempre: los bancos al sol y Beto gritando titulares. Raro, eso de «siempre».", "place": "plaza" },
-    { "id": "rumor_fiesta_union", "type": "Rumor", "provisional": true, "title": "Una fiesta que duele", "text": "Much celebra la Noche de la Unión con farolillos y maíz asado, y no sabe por qué le duele un poco.", "place": "plaza" },
-    { "id": "rumor_espiral_flores", "type": "Rumor", "provisional": true, "title": "La espiral de flores", "text": "De noche, flores marchitas dibujan una espiral en la plaza. Alguien la dibujó con el Umbral.", "place": "plaza" },
-    { "id": "clave_imprenta", "type": "Clave", "title": "La imprenta", "text": "Si la imprenta llama a Beto, deja la plaza al momento.", "person": "beto" },
-    { "id": "clave_canasta", "type": "Clave", "title": "La canasta", "text": "Lina confía en quien le carga la canasta.", "person": "lina", "place": "mercado" },
-    { "id": "final_otra_vez", "type": "Final", "title": "Otra vez", "text": "Hay otro final esperando: un día en que todos llegan enteros a medianoche." },
-    { "id": "final_un_buen_dia", "type": "Final", "title": "Un buen día", "text": "Lina, Tun y Beto llegaron enteros a medianoche, sin que Akba tocara el Umbral. Y aun así, el día volvió." }
+    {
+      "id": "hecho_llegada_marcos",
+      "type": "Hecho",
+      "title": "El hombre del farol",
+      "text": "Marcos, capitán de los Cazadores, llega en el tren de las 14:00.",
+      "person": "marcos",
+      "place": "plaza",
+      "time": "14:00"
+    },
+    {
+      "id": "hecho_marcos_sospecha",
+      "type": "Hecho",
+      "title": "Preguntas en el mercado",
+      "text": "Marcos pregunta por el vendedor cuyos titulares se cumplen. Sospecha de Beto.",
+      "person": "marcos",
+      "place": "mercado",
+      "time": "14:30",
+      "opens_door": [ "beto_imprenta" ]
+    },
+    {
+      "id": "hecho_grieta_dormida",
+      "type": "Hecho",
+      "title": "Una grieta dormida",
+      "text": "Antes de las 15:00 hay una grieta dormida en el patio de la relojería. Akba puede verla porque es un interior.",
+      "place": "relojeria",
+      "time": "14:00"
+    },
+    {
+      "id": "hecho_fisura_patio",
+      "type": "Hecho",
+      "title": "La fisura de las tres",
+      "text": "A las 15:00 se abre una fisura en el patio de la relojería. Si Lina está ahí, queda al borde.",
+      "person": "lina",
+      "place": "relojeria",
+      "time": "15:00",
+      "opens_door": [ "lina_no_ir" ]
+    },
+    {
+      "id": "hecho_lina_desaparece",
+      "type": "Hecho",
+      "title": "Lina no vuelve",
+      "text": "A las 15:30 la fisura se lleva a Lina, salvo que alguien la sostenga a las 15:00.",
+      "person": "lina",
+      "place": "relojeria",
+      "time": "15:30",
+      "opens_door": [ "lina_infancia" ]
+    },
+    {
+      "id": "hecho_puesto_vacio",
+      "type": "Hecho",
+      "title": "El puesto vacío",
+      "text": "El puesto de Lina queda tapado con un trapo. Nadie la vio volver de la relojería.",
+      "person": "lina",
+      "place": "mercado",
+      "time": "15:00"
+    },
+    {
+      "id": "hecho_ruth_otra_vez",
+      "type": "Hecho",
+      "title": "«Otra vez»",
+      "text": "Ruth murmura «otra vez» sin darse cuenta, sobre todo al cerrar a las 15:30.",
+      "person": "ruth",
+      "place": "relojeria",
+      "time": "15:30",
+      "opens_door": [ "tun_libreta" ]
+    },
+    {
+      "id": "hecho_marcos_va_por_beto",
+      "type": "Hecho",
+      "title": "La patrulla",
+      "text": "A las 21:00 Marcos patrulla la plaza y se lleva a Beto media hora después.",
+      "person": "beto",
+      "place": "plaza",
+      "time": "21:00"
+    },
+    {
+      "id": "hecho_tun_herido",
+      "type": "Hecho",
+      "title": "Tun, herido",
+      "text": "Tun sale a defender a Beto y Marcos lo hiere en el brazo.",
+      "person": "tun",
+      "place": "plaza",
+      "time": "21:30",
+      "opens_door": [ "tun_quedate" ]
+    },
+    {
+      "id": "hecho_marcos_busca",
+      "type": "Hecho",
+      "title": "Sigue el Rastro",
+      "text": "Si no encuentra a quién detener y hay Rastro, Marcos sale a buscar a Akba.",
+      "person": "marcos",
+      "place": "plaza",
+      "time": "21:00"
+    },
+    {
+      "id": "hecho_akba_atrapado",
+      "type": "Hecho",
+      "title": "Atrapado",
+      "text": "Con el Rastro al máximo, o con Marcos buscándolo, los Cazadores encuentran a Akba allí donde esté.",
+      "person": "marcos"
+    },
+    {
+      "id": "secreto_pedido_tachado",
+      "type": "Secreto",
+      "title": "La línea tachada",
+      "text": "Al pie del pedido de pan para Lina, Ruth escribió «no vengas tú» y lo tachó.",
+      "person": "ruth",
+      "opens_door": [ "ruth_fragmentos" ]
+    },
+    {
+      "id": "secreto_libreta_tun",
+      "type": "Secreto",
+      "title": "La libreta de Tun",
+      "text": "Tun anota cada «otra vez» de Ruth: hoy lleva siete, siempre a la misma hora. Ella repite cada día las mismas frases.",
+      "person": "tun",
+      "provisional": true
+    },
+    {
+      "id": "rumor_titular_panadera",
+      "type": "Rumor",
+      "title": "El titular de Beto",
+      "text": "«El patio de la relojería se traga a una panadera a las tres.» Beto dice que es ficción. Casi siempre.",
+      "person": "beto"
+    },
+    {
+      "id": "rumor_cazadores",
+      "type": "Rumor",
+      "title": "El farol que busca",
+      "text": "Un capitán con farol busca a quien huele a Umbral.",
+      "person": "marcos"
+    },
+    {
+      "id": "rumor_patio_tres",
+      "type": "Rumor",
+      "title": "El patio cerrado",
+      "text": "Ruth cierra el patio a partir de las tres, siempre, y no sabe por qué.",
+      "person": "ruth",
+      "place": "relojeria"
+    },
+    {
+      "id": "rumor_frio_callejon",
+      "type": "Rumor",
+      "title": "Un frío que camina",
+      "text": "Un frío baja del mercado hacia la relojería. Solo Akba lo nota.",
+      "place": "mercado"
+    },
+    {
+      "id": "rumor_relojes_atrasados",
+      "type": "Rumor",
+      "provisional": true,
+      "title": "Relojes que se atrasan",
+      "text": "En la relojería todos los relojes se atrasan un poco, y ninguno está de acuerdo con otro.",
+      "person": "ruth",
+      "place": "relojeria"
+    },
+    {
+      "id": "rumor_mercado_chismes",
+      "type": "Rumor",
+      "provisional": true,
+      "title": "Chismes a media voz",
+      "text": "En el mercado se regatea y se chismea a media voz. Lina le habla a la masa como a una hija.",
+      "person": "lina",
+      "place": "mercado"
+    },
+    {
+      "id": "rumor_plaza_siempre",
+      "type": "Rumor",
+      "provisional": true,
+      "title": "Como siempre",
+      "text": "En la plaza todo está como siempre: los bancos al sol y Beto gritando titulares. Raro, eso de «siempre».",
+      "place": "plaza"
+    },
+    {
+      "id": "rumor_fiesta_union",
+      "type": "Rumor",
+      "provisional": true,
+      "title": "Una fiesta que duele",
+      "text": "Much celebra la Noche de la Unión con farolillos y maíz asado, y no sabe por qué le duele un poco.",
+      "place": "plaza"
+    },
+    {
+      "id": "rumor_espiral_flores",
+      "type": "Rumor",
+      "provisional": true,
+      "title": "La espiral de flores",
+      "text": "De noche, flores marchitas dibujan una espiral en la plaza. Alguien la dibujó con el Umbral.",
+      "place": "plaza"
+    },
+    {
+      "id": "clave_imprenta",
+      "type": "Clave",
+      "title": "La imprenta",
+      "text": "Si la imprenta llama a Beto, deja la plaza al momento.",
+      "person": "beto"
+    },
+    {
+      "id": "clave_canasta",
+      "type": "Clave",
+      "title": "La canasta",
+      "text": "Lina confía en quien le carga la canasta.",
+      "person": "lina",
+      "place": "mercado"
+    },
+    {
+      "id": "clave_lina_ruth",
+      "type": "Clave",
+      "provisional": true,
+      "title": "Por Ruth",
+      "text": "Lina teme dejar a Ruth sin pan: dice que está muy sola.",
+      "person": "lina",
+      "place": "mercado"
+    },
+    {
+      "id": "clave_lina_por_ti",
+      "type": "Clave",
+      "title": "Por ti",
+      "text": "Si se lo pide alguien de confianza, Lina no lleva el pan a la relojería a las tres.",
+      "person": "lina",
+      "place": "mercado"
+    },
+    {
+      "id": "clave_lina_infancia",
+      "type": "Clave",
+      "provisional": true,
+      "title": "Algo de niña",
+      "text": "Lina guarda algo de cuando era niña. Solo lo cuenta a quien ya vio lo que hace la grieta.",
+      "person": "lina"
+    },
+    {
+      "id": "secreto_lina_nina",
+      "type": "Secreto",
+      "title": "Lo que vio de niña",
+      "text": "De niña, Lina vio cómo la grieta se llevaba a alguien. Nunca se lo contó a nadie.",
+      "person": "lina"
+    },
+    {
+      "id": "clave_tun_olvido",
+      "type": "Clave",
+      "provisional": true,
+      "title": "Para no olvidar",
+      "text": "Tun teme olvidar: si no lo apunta, nadie se acordará.",
+      "person": "tun"
+    },
+    {
+      "id": "clave_tun_libreta",
+      "type": "Clave",
+      "provisional": true,
+      "title": "La libreta, abierta",
+      "text": "Tun enseña su libreta a quien ya oyó a Ruth decir «otra vez».",
+      "person": "tun"
+    },
+    {
+      "id": "clave_tun_plaza",
+      "type": "Clave",
+      "provisional": true,
+      "title": "Quedarse en casa",
+      "text": "Tun no irá a la fiesta si alguien de confianza le pide que se quede en casa.",
+      "person": "tun"
+    },
+    {
+      "id": "clave_beto_broma",
+      "type": "Clave",
+      "provisional": true,
+      "title": "Todo es titular",
+      "text": "Beto lo convierte todo en titular para no tener miedo de lo que escribe.",
+      "person": "beto"
+    },
+    {
+      "id": "secreto_beto_titulares",
+      "type": "Secreto",
+      "title": "Titulares que se cumplen",
+      "text": "Los titulares de Beto se cumplen: el Umbral se los susurra, y en cada bucle cambian un poco.",
+      "person": "beto"
+    },
+    {
+      "id": "clave_ruth_miedo",
+      "type": "Clave",
+      "provisional": true,
+      "title": "Parecer loca",
+      "text": "Ruth teme que, si cuenta lo que recuerda, la tomen por loca.",
+      "person": "ruth",
+      "place": "relojeria"
+    },
+    {
+      "id": "clave_ruth_recuerda",
+      "type": "Clave",
+      "provisional": true,
+      "title": "Lo que Ruth calla",
+      "text": "Ruth hablará de lo que recuerda con quien ya sepa de la línea tachada.",
+      "person": "ruth"
+    },
+    {
+      "id": "secreto_ruth_fragmentos",
+      "type": "Secreto",
+      "provisional": true,
+      "title": "Fragmentos",
+      "text": "Ruth recuerda fragmentos de los bucles: sabe que este día ya pasó, pero no cómo termina. Por eso escribe «no vengas tú» y lo tacha.",
+      "person": "ruth"
+    },
+    {
+      "id": "final_otra_vez",
+      "type": "Final",
+      "title": "Otra vez",
+      "text": "Hay otro final esperando: un día en que todos llegan enteros a medianoche."
+    },
+    {
+      "id": "final_un_buen_dia",
+      "type": "Final",
+      "title": "Un buen día",
+      "text": "Lina, Tun y Beto llegaron enteros a medianoche, sin que Akba tocara el Umbral. Y aun así, el día volvió."
+    }
   ],
   "questions": [
     {
@@ -41,7 +326,15 @@
     {
       "id": "q_lina",
       "text": "¿Qué le pasa a Lina a las tres?",
-      "appears_if": { "ANY": [ { "clue": "secreto_pedido_tachado" }, { "clue": "rumor_titular_panadera" }, { "clue": "hecho_puesto_vacio" }, { "clue": "hecho_fisura_patio" }, { "clue": "rumor_frio_callejon" } ] },
+      "appears_if": {
+        "ANY": [
+          { "clue": "secreto_pedido_tachado" },
+          { "clue": "rumor_titular_panadera" },
+          { "clue": "hecho_puesto_vacio" },
+          { "clue": "hecho_fisura_patio" },
+          { "clue": "rumor_frio_callejon" }
+        ]
+      },
       "resolved_if": { "clue": "hecho_lina_desaparece" },
       "hints": [
         "Dicen que el taller cierra raro después de las tres.",
@@ -57,7 +350,7 @@
       "hints": [
         "A Lina la mueve un pedido, no las ganas.",
         "¿Qué pasa si el pedido de la relojería no le llega a Lina? ¿Y si se lo pide alguien de confianza?",
-        "Con Sazil, antes de las 15:00: retén la carta, devuélvesela a Ruth o, tras cargarle la canasta, pídele a Lina que no vaya. También puede tirar de ella a las 15:00 si llegó a la relojería a las 14:30. Akba puede sellar o sostener, pero eso deja Rastro."
+        "Con Sazil, antes de las 15:00: retén la carta, devuélvesela a Ruth o, si ya sabes lo de la fisura, convence a Lina en una conversación (escúchala y dile la verdad). También puede tirar de ella a las 15:00 si llegó a la relojería a las 14:30 y Lina confía en ella. Akba puede sellar, sostener o forzar la conversación, pero eso deja Rastro."
       ]
     },
     {
@@ -90,7 +383,7 @@
       "hints": [
         "Beto tiene una sola debilidad, y huele a tinta.",
         "¿Qué haría Beto si la imprenta lo llamara esta noche?",
-        "Habla con Beto sobre sus titulares para saber lo de la imprenta y luego, con Sazil, dale el recado antes de las 21:00. O, con Sazil, ponte entre Marcos y Beto a las 21:00."
+        "Cuando ya sepas que Marcos sospecha de Beto, habla con él: escúchalo hasta saber lo de la imprenta y dale el recado antes de las 21:00. O, con Sazil, ponte entre Marcos y Beto a las 21:00."
       ]
     },
     {

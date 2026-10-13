@@ -5,7 +5,7 @@ extends "res://scripts/dev/tests/test_suite.gd"
 
 func test_entries_persist_across_loops_and_saves() -> bool:
 	var state := new_state(TEST_SAVE_PATH, true)
-	act(state, "hablar", "mercado", "beto", "beto_titular")
+	talk(state, "beto", ["silencio"])
 	check(state.has_clue("rumor_titular_panadera"), "el titular de Beto se apunta")
 	var entry: Dictionary = state.cuaderno["rumor_titular_panadera"]
 	check(entry["loop"] == 1 and entry["by"] == "sazil" and entry["time"] == GameData.parse_time("14:00"),

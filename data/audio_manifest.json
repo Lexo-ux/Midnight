@@ -1,0 +1,16 @@
+{
+  "root": "res://assets/audio/",
+  "placeholder_root": "res://assets/audio/placeholder/",
+  "extensions": [ "ogg", "wav", "mp3" ],
+  "sounds": [
+    { "id": "clock_tick", "bus": "Ambience", "loop": true, "volume_db": -16 },
+    { "id": "motif_low", "bus": "SFX", "loop": false, "volume_db": -8 },
+    { "id": "motif_high", "bus": "SFX", "loop": false, "volume_db": -10 },
+    { "id": "shimmer", "bus": "SFX", "loop": false, "volume_db": -14 },
+    { "id": "card_tick", "bus": "SFX", "loop": false, "volume_db": -12 },
+    { "id": "card_flip", "bus": "SFX", "loop": false, "volume_db": -12 },
+    { "id": "sustain_hum", "bus": "SFX", "loop": true, "volume_db": -14 },
+    { "id": "ambience_day", "bus": "Ambience", "loop": true, "volume_db": -14 },
+    { "id": "ambience_night", "bus": "Ambience", "loop": true, "volume_db": -14 }
+  ]
+}

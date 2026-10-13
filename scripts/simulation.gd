@@ -13,15 +13,26 @@ extends RefCounted
 ##
 ## Además guarda, solo para la presentación, la estación de cada protagonista en
 ## cada lugar (`stations`): sale de su última acción allí y nunca cambia reglas.
+##
+## Conversaciones con cartas: «hablar» con una persona que tiene conversación
+## lleva en la orden la lista de cartas jugadas ("cards"); aquí se vuelve a
+## jugar (scripts/conversation.gd) y se aplica el resultado. Momentos de
+## quiebre: la orden de su interacción lleva "decision" ("sostuvo" o "soltó");
+## nunca el tiempo que se mantuvo pulsado.
 
 const GameData := preload("res://scripts/game_data.gd")
 const SceneRules := preload("res://scripts/scene_rules.gd")
+const Conversation := preload("res://scripts/conversation.gd")
 
 const ROUTINE_VERB: String = "rutina"
 
 var data: GameData
 ## Cuaderno permanente: id de pista -> {loop, by, time}. Se lee en las condiciones.
 var cuaderno: Dictionary = {}
+## Velo ganado (0-3) y marcas de Akba por persona, permanentes y compartidos con
+## GameState: persona -> nivel; persona -> {count, loop}.
+var velo: Dictionary = {}
+var marks: Dictionary = {}
 var loop_number: int = 1
 ## Modo exploración (validador): no toca el cuaderno ni prepara textos; lo
 ## descubierto va a `found` y el cuaderno queda fijo durante todo el bucle.
@@ -59,6 +70,7 @@ func begin_loop() -> void:
 		"outcome": {"lines": [], "clues": []},
 		"ending": "",
 		"stations": {},
+		"conversations": {},
 	}
 	for id: String in data.protagonist_ids:
 		s["stations"][id] = {}
@@ -109,6 +121,9 @@ func actions_for(actor: String) -> Array[Dictionary]:
 		for person: String in people_at(place):
 			actions.append(_action("observar", place, person))
 			actions.append(_action("seguir", place, person))
+			var conversation_id: String = data.conversation_by_person.get(person, "")
+			if conversation_id != "" and not s["conversations"].get(person, {}).get("closed", false):
+				actions.append(_action("hablar", place, person, conversation_id))
 			for talk_id: String in data.talks:
 				var talk: Dictionary = data.talks[talk_id]
 				if talk["person"] == person and talk["actor"] in [actor, "any"] and check(talk["if"], {"place": place, "actor": actor}):
@@ -153,6 +168,8 @@ func is_pure_action(action: Dictionary) -> bool:
 		"esperar", "observar", "seguir", "leer":
 			return true
 		"hablar":
+			if data.conversations.has(action["id"]):
+				return false
 			var effects: Dictionary = data.talks[action["id"]]["effects"]
 			return effects["set"].is_empty() and effects["rastro"] == 0
 	return false
@@ -192,12 +209,18 @@ func step(command: Dictionary) -> bool:
 	var acted: bool = command.get("verb", "") != ROUTINE_VERB
 	if acted and not exploring and not is_available(actor, command):
 		return false
+	var conversation: Dictionary = {}
+	if acted and command["verb"] == "hablar" and data.conversations.has(command["id"]):
+		conversation = Conversation.replay(data, command["id"], actor, conversation_context(actor, command["target"]),
+				command.get("cards", []))
+		if conversation.is_empty():
+			return false
 	s["outcome"] = {"lines": [], "clues": []}
 	if not exploring:
 		s["route"].append({"t": s["time"], "command": _plain_command(command)})
 	var from_place: String = s["positions"][actor]
 	if acted:
-		_apply(actor, command)
+		_apply(actor, command, conversation)
 	for id: String in data.protagonist_ids:
 		if not acted or id != actor:
 			_routine_tasks(id)
@@ -226,6 +249,23 @@ func people_at(place: String) -> Array[String]:
 
 func has_clue(id: String) -> bool:
 	return cuaderno.has(id)
+
+
+## Lo que una conversación con `person` necesita saber del mundo ahora mismo.
+## La Confianza que quedó en este bucle se conserva; si Akba la marcó en el
+## bucle anterior, empieza con 1 menos y con miedo.
+func conversation_context(actor: String, person: String) -> Dictionary:
+	var place: String = s["positions"].get(person, "")
+	var state: Dictionary = s["conversations"].get(person, {})
+	var frightened: bool = marks.get(person, {}).get("loop", -1) == loop_number - 1 and not state.has("confianza")
+	var start: int = data.people[person]["confianza_inicial"] - (1 if frightened else 0)
+	return {
+		"knows": has_clue,
+		"check": func(condition: Variant) -> bool: return check(condition, {"place": place, "actor": actor}),
+		"confianza": state.get("confianza", start),
+		"frightened": frightened,
+		"won": state.get("won", []),
+	}
 
 
 func check(condition: Variant, context: Dictionary) -> bool:
@@ -303,6 +343,15 @@ func exploration_key() -> String:
 		if key_horizons.get("trail:" + key, data.day_end) >= t:
 			trail.append(key)
 	trail.sort()
+	# De las conversaciones solo cambian el futuro las puertas ya abiertas (la
+	# Confianza que queda solo importa para otra puerta de la misma persona).
+	var talks: Array = []
+	for person: String in s["conversations"]:
+		var state: Dictionary = s["conversations"][person]
+		if not state["won"].is_empty():
+			talks.append("%s:%s" % [person, state["won"]])
+	talks.sort()
+	trail.append_array(talks)
 	var hunted: bool = s["rastro"] >= data.rastro_max or s["flags"].has("marcos_busca_akba")
 	return "%d|%s|%s|%d|%d|%d|%s|%s|%s" % [s["time"], ",".join(flags), ",".join(letters), s["rastro"],
 			s["desgaste"], s["exhausted_until"], s["positions"]["akba"] if hunted else "-", ",".join(trail), s["ending"]]
@@ -321,6 +370,10 @@ func _plain_command(command: Dictionary) -> Dictionary:
 			"target": command.get("target", ""), "id": command.get("id", "")}
 	if command.get("station", "") != "":
 		plain["station"] = command["station"]
+	if command.has("cards"):
+		plain["cards"] = Array(command["cards"]).duplicate()
+	if command.has("decision"):
+		plain["decision"] = command["decision"]
 	return plain
 
 
@@ -342,7 +395,7 @@ func _can_afford(interaction: Dictionary) -> bool:
 	return not GameData.FORCING_VERBS.has(interaction["verb"]) or s["desgaste"] < data.desgaste_max
 
 
-func _apply(actor: String, command: Dictionary) -> void:
+func _apply(actor: String, command: Dictionary, conversation: Dictionary) -> void:
 	var place: String = command["place"]
 	var target: String = command["target"]
 	var context: Dictionary = {"place": place, "actor": actor}
@@ -362,10 +415,16 @@ func _apply(actor: String, command: Dictionary) -> void:
 			_say(actor, data.text("linea_seguir_" + actor), {"nombre": data.people[target]["name"]})
 			_learn_schedule(target, actor, true)
 		"hablar":
+			if not conversation.is_empty():
+				_apply_conversation(actor, conversation)
+				return
 			var talk: Dictionary = data.talks[command["id"]]
 			_play_lines(talk["lines"])
 			_apply_effects(talk["effects"], actor)
 		"interactuar":
+			# Un momento de quiebre en el que se soltó: pasa la media hora y nada más.
+			if command.get("decision", "sostuvo") == "soltó":
+				return
 			var interaction: Dictionary = data.interactions[command["id"]]
 			_play_lines(interaction["lines"])
 			_apply_effects(interaction["effects"], actor)
@@ -385,6 +444,40 @@ func _apply(actor: String, command: Dictionary) -> void:
 			for divert: Dictionary in data.letters[command["id"]]["divert"]:
 				if divert["to"] == target:
 					_play_part(divert, actor)
+
+
+## El resultado de una conversación ya jugada. Sus líneas ya se vieron en la
+## conversación; aquí quedan las pistas, la puerta abierta y lo que cuesta.
+func _apply_conversation(actor: String, conv: Dictionary) -> void:
+	var person: String = conv["person"]
+	var conversation: Dictionary = data.conversations[conv["conversation"]]
+	var state: Dictionary = s["conversations"].get(person, {"won": []})
+	state["confianza"] = conv["confianza"]
+	state["closed"] = conv["result"] == "closed"
+	for clue: String in conv["clues"]:
+		_grant(clue, actor)
+	if conv["result"] == "win":
+		var door: Dictionary = data.conversation_elements[conv["door"]]
+		_apply_effects(door["effects"], actor)
+		state["won"] = state["won"] + [door["id"]]
+		_raise_velo(person, 2)
+		if exploring:
+			found["door:" + door["id"]] = true
+		if conv["forced"]:
+			_force(data.card_rules["forced_rastro"])
+			if not exploring:
+				var mark: Dictionary = marks.get(person, {"count": 0, "loop": 0})
+				marks[person] = {"count": mark["count"] + 1, "loop": loop_number}
+	var trust: Variant = conversation["trust"]
+	if trust != null and not state["closed"] and trust["actor"] == actor and conv["confianza"] >= trust["min"]:
+		for flag: String in trust["set"]:
+			_set_flag(flag)
+	s["conversations"][person] = state
+
+
+func _raise_velo(person: String, level: int) -> void:
+	if not exploring and velo.get(person, 0) < level:
+		velo[person] = level
 
 
 ## El Umbral se paga: Desgaste (doble de día), Rastro y la marca de que Akba forzó algo.
@@ -496,6 +589,11 @@ func _finish_loop() -> void:
 			break
 	s["ending"] = chosen["id"]
 	_grant(chosen["clue"], s["active"])
+	# Velo 3 por salvar a alguien: sigue entero a medianoche.
+	for id: String in data.npc_ids():
+		var velo3: Variant = data.people[id]["velo3"]
+		if velo3 != null and velo3["saved_if"] != null and check(velo3["saved_if"], {}):
+			_raise_velo(id, 3)
 	if exploring:
 		found["ending:" + chosen["id"]] = true
 
@@ -549,6 +647,10 @@ func _grant(id: String, by: String) -> void:
 		return
 	cuaderno[id] = {"loop": loop_number, "by": by, "time": s["time"]}
 	s["outcome"]["clues"].append(id)
+	# Velo 3 por descubrir el secreto de alguien.
+	var person: String = data.clues[id]["person"]
+	if person != "" and data.people[person]["velo3"] != null and data.people[person]["velo3"]["secret"] == id:
+		_raise_velo(person, 3)
 
 
 func _play_part(part: Dictionary, actor: String) -> void:

@@ -38,6 +38,18 @@
     {"id": "hands_akba_point", "path": "hands/hands_akba_point.png", "size": [1080, 720], "kind": "cutout", "fallback": "placeholder", "actor": "akba", "hand_state": "point"},
     {"id": "hands_akba_light", "path": "hands/hands_akba_light.png", "size": [1080, 720], "kind": "cutout", "fallback": "placeholder", "actor": "akba", "hand_state": "light"},
     {"id": "hands_akba_reach", "path": "hands/hands_akba_reach.png", "size": [1080, 720], "kind": "cutout", "fallback": "placeholder", "actor": "akba", "hand_state": "reach"},
-    {"id": "hands_akba_wait", "path": "hands/hands_akba_wait.png", "size": [1080, 720], "kind": "cutout", "fallback": "placeholder", "actor": "akba", "hand_state": "wait"}
+    {"id": "hands_akba_wait", "path": "hands/hands_akba_wait.png", "size": [1080, 720], "kind": "cutout", "fallback": "placeholder", "actor": "akba", "hand_state": "wait"},
+    {"id": "hands_sazil_grip", "path": "hands/hands_sazil_grip.png", "size": [1080, 720], "kind": "cutout", "fallback": "placeholder", "actor": "sazil", "hand_state": "grip"},
+    {"id": "hands_akba_grip", "path": "hands/hands_akba_grip.png", "size": [1080, 720], "kind": "cutout", "fallback": "placeholder", "actor": "akba", "hand_state": "grip"},
+    {"id": "npc_ruth_velo2", "path": "faces/npc_ruth_velo2.png", "size": [1024, 1024], "kind": "cutout", "fallback": "placeholder", "person": "ruth", "velo": 2},
+    {"id": "npc_ruth_velo3", "path": "faces/npc_ruth_velo3.png", "size": [1024, 1024], "kind": "cutout", "fallback": "placeholder", "person": "ruth", "velo": 3},
+    {"id": "npc_tun_velo2", "path": "faces/npc_tun_velo2.png", "size": [1024, 1024], "kind": "cutout", "fallback": "placeholder", "person": "tun", "velo": 2},
+    {"id": "npc_tun_velo3", "path": "faces/npc_tun_velo3.png", "size": [1024, 1024], "kind": "cutout", "fallback": "placeholder", "person": "tun", "velo": 3},
+    {"id": "npc_lina_velo2", "path": "faces/npc_lina_velo2.png", "size": [1024, 1024], "kind": "cutout", "fallback": "placeholder", "person": "lina", "velo": 2},
+    {"id": "npc_lina_velo3", "path": "faces/npc_lina_velo3.png", "size": [1024, 1024], "kind": "cutout", "fallback": "placeholder", "person": "lina", "velo": 3},
+    {"id": "npc_marcos_velo2", "path": "faces/npc_marcos_velo2.png", "size": [1024, 1024], "kind": "cutout", "fallback": "placeholder", "person": "marcos", "velo": 2},
+    {"id": "npc_marcos_velo3", "path": "faces/npc_marcos_velo3.png", "size": [1024, 1024], "kind": "cutout", "fallback": "placeholder", "person": "marcos", "velo": 3},
+    {"id": "npc_beto_velo2", "path": "faces/npc_beto_velo2.png", "size": [1024, 1024], "kind": "cutout", "fallback": "placeholder", "person": "beto", "velo": 2},
+    {"id": "npc_beto_velo3", "path": "faces/npc_beto_velo3.png", "size": [1024, 1024], "kind": "cutout", "fallback": "placeholder", "person": "beto", "velo": 3}
   ]
 }

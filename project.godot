@@ -12,12 +12,15 @@ config_version=5
 
 config/name="Lifesim"
 run/main_scene="res://scenes/main.tscn"
+config/quit_on_go_back=false
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
 
 [autoload]
 
 GameState="*res://scripts/game_state.gd"
+AudioDirector="*res://scripts/audio_director.gd"
+Haptics="*res://scripts/haptics.gd"
 
 [display]
 

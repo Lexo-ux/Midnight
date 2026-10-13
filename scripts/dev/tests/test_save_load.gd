@@ -59,7 +59,7 @@ func test_marta_prototype_save_starts_fresh() -> bool:
 
 func test_unknown_ids_start_fresh() -> bool:
 	var played := new_state()
-	act(played, "hablar", "mercado", "lina", "lina_hola")
+	talk(played, "lina", ["silencio"])
 	var mutations: Array[Callable] = [
 		func(save: Dictionary) -> void: save["cuaderno"]["pista_inventada"] = {"loop": 1, "by": "sazil", "time": 840},
 		func(save: Dictionary) -> void: save["loop"]["flags"]["bandera_inventada"] = 840,
