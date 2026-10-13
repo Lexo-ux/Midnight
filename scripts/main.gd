@@ -124,6 +124,9 @@ func _ready() -> void:
 	_tips.set_targets([_switcher, _notebook_button, _tools_button])
 	_actions_scroll.get_v_scroll_bar().value_changed.connect(func(_value: float) -> void: _update_more_hint())
 	_actions_scroll.get_v_scroll_bar().changed.connect(_update_more_hint)
+	# Bajo una pantalla opaca a pantalla completa no se dibuja la escena (móviles modestos).
+	for overlay: Control in _opaque_overlays():
+		overlay.visibility_changed.connect(_update_scene_visibility)
 	get_tree().node_added.connect(_attach_press)
 	for button: Node in find_children("*", "BaseButton", true, false):
 		_attach_press(button)
@@ -169,7 +172,7 @@ func _refresh() -> void:
 	var reduced: bool = GameState.settings["reduced_motion"]
 	_hands.show_hands(actor, GameState.hands_state(actor), 0.0 if reduced else data.scene_camera["hands_ms"] / 1000.0)
 	# Sin escena (el protagonista está en otro sitio), no hay manos que enseñar.
-	_hands.visible = data.has_scene(place)
+	_hands.visible = data.has_scene(place) and _place_view.visible
 	_refresh_caption(place, preview)
 	_refresh_status()
 	_refresh_switcher()
@@ -423,6 +426,17 @@ func _near_fissure(place: String) -> bool:
 		if hotspot["fissure"] and hotspot["place"] == place and t >= hotspot["from"] and t < hotspot["to"]:
 			return true
 	return false
+
+
+## Pantallas que tapan la escena entera (opacas o casi).
+func _opaque_overlays() -> Array[Control]:
+	return [_conversation, _breakpoint, _settings, _tools, _notebook, _map, _loop_end, _loop_reset]
+
+
+func _update_scene_visibility() -> void:
+	var covered := _opaque_overlays().any(func(overlay: Control) -> bool: return overlay.visible)
+	_place_view.visible = not covered
+	_hands.visible = not covered and GameState.data.has_scene(_place_view.place)
 
 
 func _overlay_open() -> bool:

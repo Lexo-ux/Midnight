@@ -44,6 +44,8 @@ const SAZIL_FILL := Color("f3c98b")
 const SAZIL_FILL_ACTIVE := Color("ffb44f")
 const AKBA_FILL := Color("2c2a6e")
 const AKBA_FILL_ACTIVE := Color("4b48b8")
+## Carta de Conocimiento (sale del Cuaderno): verde azulado oscuro.
+const KNOWLEDGE := Color("1a4f4b")
 
 # --- Medidas --------------------------------------------------------------------
 ## Píxeles lógicos por dp en el teléfono más estrecho habitual (360 dp de ancho:
@@ -83,7 +85,7 @@ const TEXT_PAIRS: Array[Array] = [
 	["PaperMuted sobre Paper", TEXT_DARK_MUTED, PAPER],
 	["PaperMuted sobre PaperCard", TEXT_DARK_MUTED, PAPER_CARD],
 	["CardText sobre Card", TEXT_LIGHT_MUTED, VIOLET],
-	["CardText sobre CardKnowledge", TEXT_LIGHT_MUTED, Color("1f5c58")],
+	["CardText sobre CardKnowledge", TEXT_LIGHT_MUTED, KNOWLEDGE],
 	["Button", TEXT_LIGHT, VIOLET],
 	["Button pulsado", TEXT_LIGHT, VIOLET_PRESSED],
 	["Primary", INK, NEON_YELLOW],
@@ -239,7 +241,7 @@ static func build_theme() -> Theme:
 	_set_button(theme, "NavButton", button_boxes(VIOLET, VIOLET_PRESSED, RADIUS, SPACE_XS, SPACE_XS), TEXT_LIGHT, "Button")
 	theme.set_constant("h_separation", "NavButton", 2)
 	_set_button(theme, "Card", button_boxes(VIOLET, VIOLET_PRESSED, RADIUS_LARGE, SPACE_S, SPACE_S), TEXT_LIGHT, "Button")
-	_set_button(theme, "CardKnowledge", button_boxes(Color("1f5c58"), Color("17463f"), RADIUS_LARGE, SPACE_S, SPACE_S), TEXT_LIGHT, "Button")
+	_set_button(theme, "CardKnowledge", button_boxes(KNOWLEDGE, KNOWLEDGE.darkened(0.2), RADIUS_LARGE, SPACE_S, SPACE_S), TEXT_LIGHT, "Button")
 	# Selector de protagonista: Sazil redondeada (sol), Akba en chaflán (luna).
 	var sazil := button_boxes(SAZIL_FILL, SAZIL_FILL_ACTIVE, RADIUS_LARGE * 2, SPACE_S, SPACE_S)
 	var sazil_active := button_boxes(SAZIL_FILL_ACTIVE, SAZIL_FILL_ACTIVE, RADIUS_LARGE * 2, SPACE_S, SPACE_S, SELECTED_BASE)

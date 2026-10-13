@@ -5,7 +5,7 @@
 [ext_resource type="PackedScene" path="res://scenes/silhouette.tscn" id="3_silhouette"]
 
 [node name="SwitchButton" type="Button"]
-custom_minimum_size = Vector2(0, 220)
+custom_minimum_size = Vector2(144, 220)
 size_flags_horizontal = 3
 script = ExtResource("1_script")
 

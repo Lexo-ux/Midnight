@@ -366,9 +366,13 @@ func _apply_light() -> void:
 	var t := _light_blend
 	var weights := SceneRules.bg_weights(_data, lerpf(_minute_from, _minute_to, t))
 	var dusk_alpha := weights.x + weights.y
+	var day_alpha := weights.x / dusk_alpha if dusk_alpha > 0.0 else 0.0
 	(_bg["bg_night"] as Control).visible = dusk_alpha < 1.0
 	(_bg["bg_dusk"] as Control).modulate.a = dusk_alpha
-	(_bg["bg_day"] as Control).modulate.a = weights.x / dusk_alpha if dusk_alpha > 0.0 else 0.0
+	# Con el día del todo opaco, el atardecer de debajo no se ve: no se dibuja.
+	(_bg["bg_dusk"] as Control).visible = day_alpha < 1.0
+	(_bg["bg_day"] as Control).modulate.a = day_alpha
+	(_bg["bg_day"] as Control).visible = day_alpha > 0.0
 	var tint: Color = (_grade_from["tint"] as Color).lerp(_grade_to["tint"], t)
 	_world.modulate = tint
 	_fg.self_modulate = Color(1.0 - FG_SHADE, 1.0 - FG_SHADE, 1.0 - FG_SHADE)

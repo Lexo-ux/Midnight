@@ -94,7 +94,7 @@ func _make_node(node: Dictionary, center: Vector2, active: String) -> Control:
 	var box := VBoxContainer.new()
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.alignment = BoxContainer.ALIGNMENT_BEGIN
-	box.add_theme_constant_override("separation", 4)
+	box.theme_type_variation = &"VBoxTight"
 	box.custom_minimum_size = Vector2(NODE_WIDTH, 0)
 	box.position = center - Vector2(NODE_WIDTH * 0.5, NODE_SIZE * 0.5)
 	var data := _state.data
