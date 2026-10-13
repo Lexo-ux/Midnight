@@ -247,6 +247,11 @@ func play_card(conv: Dictionary, card: String) -> bool:
 	return Conversation.play(data, conv, card)
 
 
+## Terminar a mitad («otro rato»), antes de confirmarla.
+func finish_conversation(conv: Dictionary) -> void:
+	Conversation.finish(data, conv)
+
+
 ## La conversación cuenta como una acción «hablar» (30 minutos) con sus cartas.
 ## Sin cartas jugadas no hay acción: se abandona gratis.
 func commit_conversation(conv: Dictionary) -> bool:

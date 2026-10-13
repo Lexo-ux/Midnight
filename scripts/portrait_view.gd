@@ -15,11 +15,16 @@ const SKIN := Color("e8c7ad")
 const INK := Color("2b2418")
 const LABEL_SIZE: int = 18
 
+## Qué se está enseñando: "portrait", "art", "placeholder" o "silhouette" (para los tests).
+var mode: String = ""
+
 var _picture: TextureRect
 var _silhouette: Control
 var _drawn_level: int = 0
 var _colors: Dictionary = {}
 var _label: String = ""
+## show_person() antes de entrar en el árbol: se aplica en _ready().
+var _pending: Array = []
 
 
 func _ready() -> void:
@@ -34,13 +39,16 @@ func _ready() -> void:
 	_silhouette = SILHOUETTE_SCENE.instantiate()
 	_silhouette.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(_silhouette)
-
-
-## Qué se está enseñando: "portrait", "art", "placeholder" o "silhouette" (para los tests).
-var mode: String = ""
+	resized.connect(queue_redraw)
+	if not _pending.is_empty():
+		callv("show_person", _pending)
+		_pending = []
 
 
 func show_person(data: GameData, art: ArtLibrary, person: String, level: int) -> void:
+	if _picture == null:
+		_pending = [data, art, person, level]
+		return
 	_drawn_level = 0
 	_picture.hide()
 	_silhouette.hide()
