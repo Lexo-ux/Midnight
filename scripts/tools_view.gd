@@ -3,6 +3,8 @@ extends PanelContainer
 ## rutina) y «Repetir mi ruta» (las acciones del bucle anterior, solo al
 ## empezar un bucle).
 
+const UiStyle := preload("res://scripts/ui_style.gd")
+
 @onready var _title: Label = %Title
 @onready var _skip_title: Label = %SkipTitle
 @onready var _skip_help: Label = %SkipHelp
@@ -37,7 +39,7 @@ func _fill(grid: GridContainer, minutes: Array[int], action: Callable) -> void:
 	for minute: int in minutes:
 		var button := Button.new()
 		button.text = GameState.GameData.format_time(minute)
-		button.custom_minimum_size = Vector2(0, 120)
+		UiStyle.touch(button)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.pressed.connect(func() -> void:
 			hide()

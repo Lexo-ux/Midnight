@@ -40,11 +40,9 @@ theme_type_variation = &"Paper"
 
 [node name="Box" type="VBoxContainer" parent="Sheet"]
 layout_mode = 2
-theme_override_constants/separation = 18
 
 [node name="Header" type="HBoxContainer" parent="Sheet/Box"]
 layout_mode = 2
-theme_override_constants/separation = 28
 
 [node name="Portrait" type="Control" parent="Sheet/Box/Header"]
 unique_name_in_owner = true
@@ -56,7 +54,6 @@ script = ExtResource("2_portrait")
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
-theme_override_constants/separation = 8
 
 [node name="Name" type="Label" parent="Sheet/Box/Header/HeaderText"]
 unique_name_in_owner = true
@@ -91,17 +88,14 @@ horizontal_scroll_mode = 0
 [node name="BodyBox" type="VBoxContainer" parent="Sheet/Box/Body"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 18
 
 [node name="Elements" type="VBoxContainer" parent="Sheet/Box/Body/BodyBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 6
 
 [node name="Lines" type="VBoxContainer" parent="Sheet/Box/Body/BodyBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 14
 
 [node name="Hands" type="Control" parent="Sheet/Box/Body/BodyBox"]
 unique_name_in_owner = true
@@ -113,15 +107,12 @@ script = ExtResource("4_hands")
 [node name="Cards" type="GridContainer" parent="Sheet/Box/Body/BodyBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/h_separation = 16
-theme_override_constants/v_separation = 16
 columns = 2
 
 [node name="Result" type="VBoxContainer" parent="Sheet/Box"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
-theme_override_constants/separation = 14
 
 [node name="ResultTitle" type="Label" parent="Sheet/Box/Result"]
 unique_name_in_owner = true
@@ -137,14 +128,13 @@ autowrap_mode = 3
 
 [node name="Continue" type="Button" parent="Sheet/Box/Result"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 120)
+custom_minimum_size = Vector2(144, 144)
 layout_mode = 2
 
 [node name="Confirm" type="VBoxContainer" parent="Sheet/Box"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
-theme_override_constants/separation = 14
 
 [node name="ConfirmText" type="Label" parent="Sheet/Box/Confirm"]
 unique_name_in_owner = true
@@ -154,15 +144,15 @@ autowrap_mode = 3
 
 [node name="ConfirmYes" type="Button" parent="Sheet/Box/Confirm"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 120)
+custom_minimum_size = Vector2(144, 144)
 layout_mode = 2
 
 [node name="ConfirmNo" type="Button" parent="Sheet/Box/Confirm"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 120)
+custom_minimum_size = Vector2(144, 144)
 layout_mode = 2
 
 [node name="Finish" type="Button" parent="Sheet/Box"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 120)
+custom_minimum_size = Vector2(144, 144)
 layout_mode = 2

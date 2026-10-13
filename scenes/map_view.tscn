@@ -14,7 +14,6 @@ script = ExtResource("1_script")
 
 [node name="Box" type="VBoxContainer" parent="."]
 layout_mode = 2
-theme_override_constants/separation = 24
 
 [node name="Title" type="Label" parent="Box"]
 unique_name_in_owner = true
@@ -43,5 +42,5 @@ horizontal_alignment = 1
 
 [node name="Close" type="Button" parent="Box"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 120)
+custom_minimum_size = Vector2(144, 144)
 layout_mode = 2

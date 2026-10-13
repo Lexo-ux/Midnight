@@ -11,6 +11,7 @@ signal chosen(actor: String)
 
 const GameStateScript := preload("res://scripts/game_state.gd")
 const ArtLibrary := preload("res://scripts/art_library.gd")
+const UiStyle := preload("res://scripts/ui_style.gd")
 
 @onready var _frame: Panel = %Frame
 @onready var _portrait: TextureRect = %Portrait
@@ -45,20 +46,14 @@ func refresh(active: bool, status: String, enabled: bool) -> void:
 	var base := "Sazil" if person["icon"] == "sol" else "Akba"
 	theme_type_variation = StringName(base + ("ButtonActive" if active else "Button"))
 	disabled = not enabled
-	var ink: Color = data.ink_dark if person["icon"] == "sol" else data.ink_light
-	for label: Label in [_name, _status]:
-		label.add_theme_color_override("font_color", ink)
+	var sun: bool = person["icon"] == "sol"
+	_name.theme_type_variation = &"SwitchNameDark" if sun else &"SwitchName"
+	_status.theme_type_variation = &"SwitchStatusDark" if sun else &"SwitchStatus"
+	_frame.theme_type_variation = &"PlateRound" if sun else &"PlateChamfer"
 	_name.text = person["name"]
 	_status.text = status
 	var background: Color = get_theme_stylebox("normal").get("bg_color")
-	_icon.set_icon(person["icon"], person["colors"]["body"] if person["icon"] == "sol" else person["colors"]["body"].lightened(0.45), background)
-	var plate := StyleBoxFlat.new()
-	plate.bg_color = person["colors"]["body"].lightened(0.55)
-	plate.border_color = person["colors"]["body"].darkened(0.3)
-	plate.set_border_width_all(4)
-	plate.set_corner_radius_all(999 if person["icon"] == "sol" else 34)
-	plate.corner_detail = 16 if person["icon"] == "sol" else 1
-	_frame.add_theme_stylebox_override("panel", plate)
+	_icon.set_icon(person["icon"], UiStyle.INK if sun else UiStyle.NEON_GREEN, background)
 	_show_portrait()
 
 

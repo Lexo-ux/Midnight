@@ -14,7 +14,7 @@ extends Control
 const GameData := preload("res://scripts/game_data.gd")
 const ArtLibrary := preload("res://scripts/art_library.gd")
 const UiMotion := preload("res://scripts/ui_motion.gd")
-const CARD_MIN_HEIGHT: int = 150
+const UiStyle := preload("res://scripts/ui_style.gd")
 ## Frases que se ven a la vez (las últimas).
 const VISIBLE_LINES: int = 2
 const REACH_SECONDS: float = 0.2
@@ -159,7 +159,7 @@ func _render_cards(enabled: bool) -> void:
 	for card: String in conv["hand"]:
 		var button := Button.new()
 		button.text = _card_text(data, card)
-		button.custom_minimum_size = Vector2(0, CARD_MIN_HEIGHT)
+		UiStyle.touch(button, &"CardKnowledge" if GameState.Conversation.card_type(data, card) == "conocimiento" else &"Card")
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		button.pressed.connect(_play.bind(card))

@@ -2,8 +2,7 @@ extends Control
 ## La Confianza como puntos: llenos los que hay, solo el borde los que faltan
 ## (se distinguen por la forma, no solo por el color).
 
-const FILL := Color("8b5a2b")
-const EMPTY := Color(0.17, 0.14, 0.1, 0.55)
+const UiStyle := preload("res://scripts/ui_style.gd")
 const GAP: float = 14.0
 
 var value: int = 0
@@ -28,6 +27,7 @@ func _draw() -> void:
 	for i: int in maximum:
 		var center := Vector2(radius + 2.0 + i * (2.0 * radius + GAP), size.y * 0.5)
 		if i < value:
-			draw_circle(center, radius, FILL)
+			draw_circle(center, radius, UiStyle.INK)
+			draw_circle(center, radius - UiStyle.OUTLINE, UiStyle.VIOLET_LIGHT)
 		else:
-			draw_arc(center, radius - 2.0, 0.0, TAU, 32, EMPTY, 4.0, true)
+			draw_arc(center, radius - UiStyle.OUTLINE * 0.5, 0.0, TAU, 32, Color(UiStyle.INK, 0.6), UiStyle.OUTLINE, true)

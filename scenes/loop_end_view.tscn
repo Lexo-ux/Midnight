@@ -14,7 +14,6 @@ script = ExtResource("1_script")
 
 [node name="Box" type="VBoxContainer" parent="."]
 layout_mode = 2
-theme_override_constants/separation = 36
 
 [node name="Midnight" type="Label" parent="Box"]
 unique_name_in_owner = true
@@ -47,10 +46,10 @@ size_flags_vertical = 3
 
 [node name="OpenNotebook" type="Button" parent="Box"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 120)
+custom_minimum_size = Vector2(144, 144)
 layout_mode = 2
 
 [node name="NextLoop" type="Button" parent="Box"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 120)
+custom_minimum_size = Vector2(144, 144)
 layout_mode = 2

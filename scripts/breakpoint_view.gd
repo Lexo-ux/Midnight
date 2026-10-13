@@ -11,6 +11,7 @@ const ArtLibrary := preload("res://scripts/art_library.gd")
 const SaveManager := preload("res://scripts/save_manager.gd")
 const SustainController := preload("res://scripts/sustain_controller.gd")
 const UiMotion := preload("res://scripts/ui_motion.gd")
+const UiStyle := preload("res://scripts/ui_style.gd")
 ## A partir de aquí se dice la frase de «ya casi».
 const NEAR_END: float = 0.75
 
@@ -155,10 +156,9 @@ func _fill_choices() -> void:
 func _choice_button(text: String, active: bool, on_pressed: Callable) -> Button:
 	var button := Button.new()
 	button.text = text
-	button.custom_minimum_size = Vector2(0, 120)
+	UiStyle.touch(button, &"Selected" if active else &"")
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	button.theme_type_variation = &"TabActive" if active else &""
 	button.pressed.connect(on_pressed)
 	return button
 

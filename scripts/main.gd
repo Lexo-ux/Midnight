@@ -17,13 +17,13 @@ extends Control
 
 const GameData := preload("res://scripts/game_data.gd")
 const ArtLibrary := preload("res://scripts/art_library.gd")
+const UiStyle := preload("res://scripts/ui_style.gd")
 const SWITCH_BUTTON_SCENE := preload("res://scenes/switch_button.tscn")
 ## Acciones que no dependen del lugar (la bolsa de Sazil).
 const BAG_VERBS: PackedStringArray = ["leer", "retener"]
 const SWEEP_SECONDS: float = 0.22
 const SWEEP_WIDTH_RATIO: float = 0.45
 const SWEEP_ALPHA: float = 0.45
-const BUTTON_MIN_HEIGHT: int = 120
 ## Margen de los paneles de arriba y abajo sin zona segura (el del tema).
 const TOP_MARGIN: float = 48.0
 const BOTTOM_MARGIN: float = 24.0
@@ -246,7 +246,7 @@ func _refresh_actions(place: String, here: String, actions: Array[Dictionary]) -
 			continue
 		var button := Button.new()
 		button.text = _action_label(action, here)
-		button.custom_minimum_size = Vector2(0, BUTTON_MIN_HEIGHT)
+		UiStyle.touch(button)
 		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		button.pressed.connect(_do_action.bind(action))
 		_actions.add_child(button)
@@ -267,8 +267,7 @@ func _do_action(action: Dictionary) -> void:
 func _chip(text: String, active: bool, on_pressed: Callable) -> Button:
 	var chip := Button.new()
 	chip.text = text
-	chip.custom_minimum_size = Vector2(0, BUTTON_MIN_HEIGHT)
-	chip.theme_type_variation = &"TabActive" if active else &""
+	UiStyle.touch(chip, &"ChipSelected" if active else &"Chip")
 	chip.pressed.connect(on_pressed)
 	return chip
 
@@ -438,11 +437,8 @@ func _panel_with_margin(panel: PanelContainer, property: String, value: float) -
 	return style
 
 
+## El tamaño de letra elegido, en el tema del proyecto (assets/ui/theme.tres).
 func _apply_text_size() -> void:
-	var data := GameState.data
-	var sizes: Dictionary = data.text_sizes[GameState.settings["text_size"]]
-	for type: String in ["Label", "Button", "CheckButton"]:
-		theme.set_font_size("font_size", type, sizes["body"])
-	for type: String in ["TitleLabel", "PaperTitle", "SwitchName"]:
-		theme.set_font_size("font_size", type, sizes["title"])
-	theme.set_font_size("font_size", "NightTitle", sizes["title"] + 12)
+	var project_theme := ThemeDB.get_project_theme()
+	if project_theme != null:
+		UiStyle.apply_text_size(project_theme, GameState.data.text_sizes[GameState.settings["text_size"]])

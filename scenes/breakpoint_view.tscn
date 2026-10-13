@@ -16,7 +16,6 @@ script = ExtResource("1_script")
 
 [node name="Box" type="VBoxContainer" parent="."]
 layout_mode = 2
-theme_override_constants/separation = 20
 
 [node name="Title" type="Label" parent="Box"]
 unique_name_in_owner = true
@@ -64,7 +63,6 @@ script = ExtResource("3_hands")
 [node name="Controls" type="VBoxContainer" parent="Box"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 16
 
 [node name="Sustain" type="Button" parent="Box/Controls"]
 unique_name_in_owner = true
@@ -75,19 +73,18 @@ autowrap_mode = 3
 
 [node name="LetGo" type="Button" parent="Box/Controls"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 120)
+custom_minimum_size = Vector2(144, 144)
 layout_mode = 2
 
 [node name="Later" type="Button" parent="Box/Controls"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 120)
+custom_minimum_size = Vector2(144, 144)
 layout_mode = 2
 
 [node name="Done" type="VBoxContainer" parent="Box"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
-theme_override_constants/separation = 16
 
 [node name="DoneText" type="Label" parent="Box/Done"]
 unique_name_in_owner = true
@@ -98,14 +95,13 @@ autowrap_mode = 3
 
 [node name="DoneContinue" type="Button" parent="Box/Done"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 120)
+custom_minimum_size = Vector2(144, 144)
 layout_mode = 2
 
 [node name="Choice" type="VBoxContainer" parent="Box"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
-theme_override_constants/separation = 16
 
 [node name="ChoiceTitle" type="Label" parent="Box/Choice"]
 unique_name_in_owner = true
@@ -127,7 +123,6 @@ theme_type_variation = &"NightLabel"
 [node name="Modes" type="VBoxContainer" parent="Box/Choice"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 12
 
 [node name="TimeTitle" type="Label" parent="Box/Choice"]
 unique_name_in_owner = true
@@ -137,9 +132,8 @@ theme_type_variation = &"NightLabel"
 [node name="Times" type="HBoxContainer" parent="Box/Choice"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 12
 
 [node name="ChoiceOk" type="Button" parent="Box/Choice"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 120)
+custom_minimum_size = Vector2(144, 144)
 layout_mode = 2

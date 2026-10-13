@@ -9,6 +9,7 @@ extends Control
 const ArtLibrary := preload("res://scripts/art_library.gd")
 const PortraitView := preload("res://scripts/portrait_view.gd")
 const UiMotion := preload("res://scripts/ui_motion.gd")
+const UiStyle := preload("res://scripts/ui_style.gd")
 const PAGES: PackedStringArray = ["personas", "lugares", "linea", "preguntas"]
 const SILHOUETTE_SIZE: int = 160
 
@@ -67,9 +68,8 @@ func _render() -> void:
 	for page_id: String in PAGES:
 		var tab := Button.new()
 		tab.text = data.text("pestana_" + page_id)
-		tab.custom_minimum_size = Vector2(0, 120)
+		UiStyle.touch(tab, &"Selected" if page_id == page else &"")
 		tab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		tab.theme_type_variation = &"TabActive" if page_id == page else &""
 		tab.pressed.connect(show_page.bind(page_id))
 		_tabs.add_child(tab)
 	for child: Node in _content.get_children():
@@ -152,7 +152,7 @@ func _render_questions() -> void:
 	var questions := GameState.get_questions()
 	var ask := Button.new()
 	ask.text = data.text("que_hago")
-	ask.custom_minimum_size = Vector2(0, 120)
+	UiStyle.touch(ask, &"Primary")
 	ask.pressed.connect(what_now)
 	_content.add_child(ask)
 	if notice != "":
@@ -171,7 +171,7 @@ func _render_questions() -> void:
 		if item["hint_level"] < 3:
 			var button := Button.new()
 			button.text = data.text("preguntas_pista").format({"n": item["hint_level"] + 1})
-			button.custom_minimum_size = Vector2(0, 120)
+			UiStyle.touch(button)
 			button.pressed.connect(func() -> void: GameState.reveal_hint(question["id"]))
 			_content.add_child(button)
 		_content.add_child(HSeparator.new())
