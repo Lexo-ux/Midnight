@@ -14,7 +14,9 @@ config/name="Lifesim"
 run/main_scene="res://scenes/main.tscn"
 config/quit_on_go_back=false
 config/features=PackedStringArray("4.7", "GL Compatibility")
-config/icon="res://icon.svg"
+config/icon="res://assets/art_provisional/app/app_icon.png"
+boot_splash/bg_color=Color(0.05882353, 0.043137256, 0.14117648, 1)
+boot_splash/image="res://assets/art_provisional/app/app_splash.png"
 
 [autoload]
 
@@ -29,6 +31,10 @@ window/size/viewport_height=1920
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/handheld/orientation=1
+
+[gui]
+
+theme/custom="res://assets/ui/theme.tres"
 
 [physics]
 

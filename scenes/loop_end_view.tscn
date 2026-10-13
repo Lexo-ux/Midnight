@@ -12,45 +12,67 @@ grow_vertical = 2
 theme_type_variation = &"Night"
 script = ExtResource("1_script")
 
-[node name="Box" type="VBoxContainer" parent="."]
+[node name="Scroll" type="ScrollContainer" parent="."]
 layout_mode = 2
-theme_override_constants/separation = 36
+horizontal_scroll_mode = 0
 
-[node name="Midnight" type="Label" parent="Box"]
+[node name="Box" type="VBoxContainer" parent="Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="MidnightBadge" type="PanelContainer" parent="Scroll/Box"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_type_variation = &"BadgePanel"
+
+[node name="Midnight" type="Label" parent="Scroll/Box/MidnightBadge"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_type_variation = &"NightMuted"
+theme_type_variation = &"Badge"
 horizontal_alignment = 1
 
-[node name="EndingTitle" type="Label" parent="Box"]
+[node name="Illustration" type="TextureRect" parent="Scroll/Box"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 560)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="EndingTitle" type="Label" parent="Scroll/Box"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NightTitle"
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="EndingText" type="Label" parent="Box"]
+[node name="EndingText" type="Label" parent="Scroll/Box"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NightLabel"
 autowrap_mode = 3
 
-[node name="Entry" type="Label" parent="Box"]
+[node name="EntryCard" type="PanelContainer" parent="Scroll/Box"]
+layout_mode = 2
+theme_type_variation = &"CardNight"
+
+[node name="Entry" type="Label" parent="Scroll/Box/EntryCard"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NightMuted"
 autowrap_mode = 3
 
-[node name="Spacer" type="Control" parent="Box"]
+[node name="Spacer" type="Control" parent="Scroll/Box"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="OpenNotebook" type="Button" parent="Box"]
+[node name="OpenNotebook" type="Button" parent="Scroll/Box"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 120)
+custom_minimum_size = Vector2(144, 144)
 layout_mode = 2
 
-[node name="NextLoop" type="Button" parent="Box"]
+[node name="NextLoop" type="Button" parent="Scroll/Box"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 120)
+custom_minimum_size = Vector2(144, 144)
 layout_mode = 2
+theme_type_variation = &"Primary"

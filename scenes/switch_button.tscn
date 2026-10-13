@@ -5,7 +5,7 @@
 [ext_resource type="PackedScene" path="res://scenes/silhouette.tscn" id="3_silhouette"]
 
 [node name="SwitchButton" type="Button"]
-custom_minimum_size = Vector2(0, 220)
+custom_minimum_size = Vector2(144, 220)
 size_flags_horizontal = 3
 script = ExtResource("1_script")
 
@@ -21,7 +21,6 @@ offset_bottom = -14.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_constants/separation = 14
 
 [node name="Frame" type="Panel" parent="Row"]
 unique_name_in_owner = true
@@ -62,12 +61,10 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
 mouse_filter = 2
-theme_override_constants/separation = 0
 
 [node name="Top" type="HBoxContainer" parent="Row/Texts"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 10
 
 [node name="Icon" type="Control" parent="Row/Texts/Top"]
 unique_name_in_owner = true

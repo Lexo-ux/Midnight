@@ -5,7 +5,7 @@ extends PanelContainer
 
 const SaveManager := preload("res://scripts/save_manager.gd")
 const UiMotion := preload("res://scripts/ui_motion.gd")
-const SLIDER_HEIGHT: int = 120
+const UiStyle := preload("res://scripts/ui_style.gd")
 
 signal tips_requested
 
@@ -117,25 +117,12 @@ func _render_volumes() -> void:
 			slider.min_value = 0.0
 			slider.max_value = 1.0
 			slider.step = 0.05
-			slider.custom_minimum_size = Vector2(0, SLIDER_HEIGHT)
-			slider.add_theme_stylebox_override("slider", _track(Color(0.17, 0.14, 0.1, 0.25)))
-			slider.add_theme_stylebox_override("grabber_area", _track(Color("8b5a2b")))
-			slider.add_theme_stylebox_override("grabber_area_highlight", _track(Color("a86d36")))
+			slider.custom_minimum_size = Vector2(UiStyle.MIN_TOUCH, UiStyle.MIN_TOUCH)
 			slider.value_changed.connect(func(value: float) -> void: GameState.set_volume(key, value))
 			_volumes.add_child(slider)
 			_sliders[key] = slider
 	for key: String in _sliders:
 		(_sliders[key] as HSlider).set_value_no_signal(GameState.settings[key])
-
-
-## Pista gruesa del deslizador (se ve y se toca bien con el pulgar).
-func _track(color: Color) -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = color
-	style.content_margin_top = 12.0
-	style.content_margin_bottom = 12.0
-	style.set_corner_radius_all(12)
-	return style
 
 
 ## Botones de opción (el elegido resaltado).
@@ -144,10 +131,9 @@ func _fill(box: Container, options: Array[Dictionary]) -> void:
 	for option: Dictionary in options:
 		var button := Button.new()
 		button.text = option["text"]
-		button.custom_minimum_size = Vector2(0, 120)
+		UiStyle.touch(button, &"Selected" if option["active"] else &"")
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		button.theme_type_variation = &"TabActive" if option["active"] else &""
 		button.pressed.connect(option["action"])
 		box.add_child(button)
 

@@ -1,10 +1,13 @@
 extends "res://scripts/dev/tests/test_suite.gd"
 ## El arte: el manifiesto (ids únicos, rutas bien formadas, todas las ranuras
-## que la UI pide), los provisionales con un solo aviso por ranura, la capa
-## `mid` opcional sobre fondos de verdad y la herramienta de ingesta con
-## imágenes sintéticas (magenta a transparente, tamaño, informe).
+## que la UI pide), los provisionales generados (assets/art_provisional/) que el
+## arte de verdad sustituye sin tocar código, los dibujados con un solo aviso
+## por ranura, la capa `mid` opcional sobre fondos de verdad y la herramienta de
+## ingesta con imágenes sintéticas (magenta a transparente, tamaño, informe,
+## modo de solo comprobar y sugerencias para archivos mal nombrados).
 
 const ArtIngest := preload("res://scripts/dev/art_ingest.gd")
+const HandsView := preload("res://scripts/hands_view.gd")
 const TEST_ART_DIR: String = "user://test_art"
 const MAGENTA := Color8(255, 0, 255)
 ## Fondo algo irregular, como el de las imágenes generadas.
@@ -59,6 +62,7 @@ func test_broken_manifests_fail() -> bool:
 func test_missing_art_falls_back_with_one_warning() -> bool:
 	var manifest: Dictionary = read_json(ArtLibrary.MANIFEST_PATH)
 	manifest["root"] = "res://no_existe_arte/"
+	manifest["provisional_root"] = "res://no_existe_provisional/"
 	var art := ArtLibrary.new()
 	check(art.load_source(manifest), "un manifiesto sin archivos sigue siendo válido")
 	var layers := art.enter_place("mercado")
@@ -76,16 +80,64 @@ func test_missing_art_falls_back_with_one_warning() -> bool:
 
 
 func test_mid_is_optional_over_real_backgrounds() -> bool:
+	var manifest: Dictionary = read_json(ArtLibrary.MANIFEST_PATH)
+	manifest["provisional_root"] = "res://no_existe_provisional/"
 	var art := ArtLibrary.new()
-	art.load_manifest()
+	art.load_source(manifest)
 	if not art.uses_real_bg("plaza"):
 		# Sin fondos de verdad en este clon no hay nada que comprobar.
 		return true
 	var layers := art.enter_place("plaza")
 	if not art.has_file("plaza_mid"):
-		check(layers["mid"]["texture"] == null and not layers["mid"]["placeholder"], "sin `mid` sobre fondos de verdad no se dibuja nada")
+		check(layers["mid"]["texture"] == null and not layers["mid"]["placeholder"], "sin `mid` (ni provisional) sobre fondos de verdad no se dibuja nada")
 		check(not art.warned.has("plaza_mid"), "y no se avisa")
 	check(layers["bg_day"]["texture"] != null, "el fondo de verdad se carga")
+	return true
+
+
+## Cada ranura `provisional` sin arte de verdad tiene su imagen generada, con el
+## tamaño del manifiesto; el arte de verdad la sustituye sin tocar código.
+func test_provisional_art_until_real_art_arrives() -> bool:
+	var art := ArtLibrary.new()
+	check(art.load_manifest(), "el manifiesto real es válido")
+	check(art.provisional_root.begins_with("res://"), "hay carpeta de provisionales")
+	var provisional := 0
+	for id: String in art.slot_ids:
+		var slot: Dictionary = art.slots[id]
+		if not slot["provisional"] or art.has_file(id):
+			continue
+		provisional += 1
+		check(art.source_of(id) == "provisional", "%s usa su provisional generado" % id)
+		var texture := art.texture_for(id)
+		if check(texture != null, "%s: el provisional se carga" % id):
+			check(Vector2i(texture.get_size()) == slot["size"], "%s: %s, se esperaba %s" % [id, texture.get_size(), slot["size"]])
+	check(provisional >= 20, "manos, capas, mapa, finales, icono y arranque son provisionales: %d" % provisional)
+	var layers := art.enter_place("mercado")
+	check(layers["fg"]["texture"] != null and not layers["fg"]["placeholder"], "el primer plano provisional se usa")
+	check(not art.warned.has("mercado_fg"), "y no avisa como arte que falta")
+	check(art.small_texture("hands_akba_light") != null and not art.warned.has("hands_akba_light"), "las manos provisionales se usan sin aviso")
+	# Llega el arte de verdad: misma ranura, otra ruta en assets/art/.
+	art.slots["hands_akba_light"]["path"] = "res://icon.svg"
+	art.slots["mercado_fg"]["path"] = "res://icon.svg"
+	check(art.source_of("hands_akba_light") == "real" and art.resolve_path("hands_akba_light") == "res://icon.svg",
+			"el arte de verdad gana al provisional")
+	art.release_place()
+	check(art.enter_place("mercado")["fg"]["texture"].resource_path == "res://icon.svg", "también en las capas del lugar")
+	# Las caras de Velo 2-3 son de la comunidad: el estudio no genera nada.
+	for id: String in art.slot_ids:
+		if id.begins_with("npc_"):
+			check(not art.slots[id]["provisional"], "%s no es provisional del estudio" % id)
+	return true
+
+
+func test_hands_are_four_by_three() -> bool:
+	var art := ArtLibrary.new()
+	art.load_manifest()
+	for id: String in art.slot_ids:
+		if id.begins_with("hands_"):
+			var size: Vector2i = art.slots[id]["size"]
+			check(size.x * 3 == size.y * 4, "%s es 4:3 (%s)" % [id, size])
+	check(is_equal_approx(HandsView.DESIGN.x / HandsView.DESIGN.y, 4.0 / 3.0), "las manos dibujadas también")
 	return true
 
 
@@ -121,6 +173,23 @@ func test_ingest_keys_magenta_resizes_and_reports() -> bool:
 	check(additive.get_size() == Vector2i(60, 40) and additive.get_pixel(1, 1) == Color.BLACK, "la capa aditiva solo se redimensiona: el negro sigue negro")
 	var again := ingest.run(incoming, TEST_ART_DIR + "/out")
 	check(again["ingested"].is_empty() and again["up_to_date"].size() == 2, "es idempotente: lo hecho no se rehace")
+	# Solo comprobar: dice lo mismo y no escribe nada.
+	var dry := ArtIngest.new(art)
+	dry.dry_run = true
+	var preview := dry.run(incoming, TEST_ART_DIR + "/dry")
+	check(preview["ingested"] == ["prueba_recorte", "prueba_suma"] and preview["mismatched"].size() == 1, "--check dice lo que haría: %s" % [preview])
+	check(not DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(TEST_ART_DIR + "/dry")), "y no escribe nada")
+	return true
+
+
+## Un archivo mal nombrado se informa con la ranura que parece (no se renombra).
+func test_unmatched_files_get_a_suggestion() -> bool:
+	var art := ArtLibrary.new()
+	art.load_manifest()
+	check(ArtIngest.suggest_slot(art, "objects_plaza") == "plaza_fg", "«objects» en la plaza es plaza_fg: %s" % ArtIngest.suggest_slot(art, "objects_plaza"))
+	check(ArtIngest.suggest_slot(art, "objects").contains("plaza_fg"), "sin lugar, las de primer plano: %s" % ArtIngest.suggest_slot(art, "objects"))
+	check(ArtIngest.suggest_slot(art, "hands_sazil_iddle") == "hands_sazil_idle", "una errata: la más parecida")
+	check(ArtIngest.suggest_slot(art, "zzz") == "", "y nada si no se parece a ninguna")
 	return true
 
 

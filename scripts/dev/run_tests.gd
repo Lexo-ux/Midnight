@@ -23,6 +23,7 @@ const TEST_MODULES: Array[String] = [
 	"res://scripts/dev/tests/test_loop_validator.gd",
 	"res://scripts/dev/tests/test_scenes.gd",
 	"res://scripts/dev/tests/test_art_pipeline.gd",
+	"res://scripts/dev/tests/test_ui_style.gd",
 	"res://scripts/dev/tests/test_softlock_fuzz.gd",
 ]
 const SLOW_MODULES: Array[String] = [

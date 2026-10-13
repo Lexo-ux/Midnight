@@ -9,6 +9,9 @@ extends RefCounted
 ##   - `additive`: solo redimensiona (el negro suma cero);
 ##   - escribe en assets/art/ y, la primera vez, sus ajustes de importación.
 ## Es idempotente: si la salida es más nueva que la entrada, no la rehace.
+## Con `dry_run` no escribe nada: dice qué haría (para comprobar el canal antes
+## de dejar el arte de verdad), qué ranuras usan aún su provisional y, de los
+## archivos sin ranura, a cuál se parecen (no los renombra).
 
 const ArtLibrary := preload("res://scripts/art_library.gd")
 const INCOMING_EXTENSIONS: PackedStringArray = ["png", "jpg", "jpeg", "webp"]
@@ -40,10 +43,19 @@ const EDGE_CLEAR: float = 0.02
 const EDGE_SOLID: float = 0.9
 ## Recortes más grandes que esto (en píxeles) se importan con compresión VRAM.
 const LARGE_CUTOUT_PIXELS: int = 2_000_000
+## Palabras con que suele llegar un archivo mal nombrado -> capa de un lugar.
+const LAYER_ALIASES: Dictionary = {
+	"objects": "fg", "objetos": "fg", "props": "fg", "foreground": "fg", "primer_plano": "fg", "front": "fg",
+	"middle": "mid", "medio": "mid", "midground": "mid", "overlay": "akba_overlay", "cracks": "akba_overlay",
+	"grietas": "akba_overlay", "dia": "bg_day", "day": "bg_day", "dusk": "bg_dusk", "atardecer": "bg_dusk",
+	"night": "bg_night", "noche": "bg_night",
+}
 
 var library: ArtLibrary
 ## Rehacer aunque la salida sea más nueva que la entrada.
 var force: bool = false
+## Solo comprobar: no escribe nada.
+var dry_run: bool = false
 
 
 func _init(art_library: ArtLibrary) -> void:
@@ -51,14 +63,18 @@ func _init(art_library: ArtLibrary) -> void:
 
 
 ## Procesa todo `incoming_dir` hacia `output_root` (res:// o ruta absoluta).
-## Devuelve {ingested, up_to_date, present, missing, mismatched, unmatched, failed, bytes}.
+## Devuelve {ingested, up_to_date, present, missing, provisional, mismatched,
+## unmatched, failed, bytes} (con `dry_run`, «ingested» es lo que se ingeriría).
+## `provisional`: ranuras sin arte de verdad que hoy enseñan su provisional.
+## `unmatched`: «archivo» o «archivo → ¿ranura?».
 func run(incoming_dir: String, output_root: String) -> Dictionary:
-	var report: Dictionary = {"ingested": [], "up_to_date": [], "present": [], "missing": [], "mismatched": [],
-			"unmatched": [], "failed": [], "bytes": 0}
+	var report: Dictionary = {"ingested": [], "up_to_date": [], "present": [], "missing": [], "provisional": [],
+			"mismatched": [], "unmatched": [], "failed": [], "bytes": 0}
 	var files := _incoming_files(ProjectSettings.globalize_path(incoming_dir))
 	for name: String in files:
 		if not library.slots.has(name):
-			report["unmatched"].append(files[name].get_file())
+			var hint := suggest_slot(library, name)
+			report["unmatched"].append(files[name].get_file() + (" → ¿%s?" % hint if hint != "" else ""))
 	var output_abs := ProjectSettings.globalize_path(output_root)
 	for slot_id: String in library.slot_ids:
 		var slot: Dictionary = library.slots[slot_id]
@@ -69,10 +85,10 @@ func run(incoming_dir: String, output_root: String) -> Dictionary:
 					and FileAccess.get_modified_time(out_path) >= FileAccess.get_modified_time(source):
 				report["up_to_date"].append(slot_id)
 			else:
-				var problem := ingest_file(source, slot, out_path)
+				var problem := check_file(source, slot) if dry_run else ingest_file(source, slot, out_path)
 				if problem == "":
 					report["ingested"].append(slot_id)
-					if output_root.begins_with("res://"):
+					if output_root.begins_with("res://") and not dry_run:
 						write_import_settings(output_root + slot["relative"], slot)
 				elif problem.begins_with("proporción"):
 					report["mismatched"].append("%s: %s" % [slot_id, problem])
@@ -82,10 +98,59 @@ func run(incoming_dir: String, output_root: String) -> Dictionary:
 			report["present"].append(slot_id)
 		else:
 			report["missing"].append(slot_id)
+			if library.has_provisional(slot_id):
+				report["provisional"].append(slot_id)
 		if FileAccess.file_exists(out_path):
 			var file := FileAccess.open(out_path, FileAccess.READ)
 			report["bytes"] += file.get_length()
 	return report
+
+
+## Lo que diría ingest_file() sin escribir nada: "" o el problema.
+func check_file(source_path: String, slot: Dictionary) -> String:
+	var image := Image.load_from_file(source_path)
+	if image == null or image.is_empty():
+		return "no se pudo leer %s" % source_path.get_file()
+	var target: Vector2i = slot["size"]
+	var mismatch := ratio_mismatch(image.get_size(), target)
+	if mismatch > library.ratio_tolerance:
+		return "proporción %dx%d, se esperaba %dx%d (se desvía un %.1f %%)" % [image.get_width(), image.get_height(),
+				target.x, target.y, mismatch * 100.0]
+	return ""
+
+
+## Ranura que probablemente quería ser el archivo `name` ("" si no se sabe):
+## por el lugar y la capa que nombra (p. ej. «objects» con «plaza» → plaza_fg;
+## sin lugar, las de esa capa que aún no tienen arte), o la de nombre más parecido.
+static func suggest_slot(art: ArtLibrary, name: String) -> String:
+	var lower := name.to_lower().replace("-", "_").replace(" ", "_")
+	var layer := ""
+	for word: String in LAYER_ALIASES:
+		if lower.contains(word):
+			layer = LAYER_ALIASES[word]
+	if layer != "":
+		var named: PackedStringArray = []
+		var free: PackedStringArray = []
+		for slot_id: String in art.slot_ids:
+			var slot: Dictionary = art.slots[slot_id]
+			if slot["layer"] != layer:
+				continue
+			if slot["place"] != "" and lower.contains(slot["place"]):
+				named.append(slot_id)
+			elif not art.has_file(slot_id):
+				free.append(slot_id)
+		if not named.is_empty():
+			return " / ".join(named)
+		if not free.is_empty():
+			return " / ".join(free)
+	var best := ""
+	var best_score := 0.5
+	for slot_id: String in art.slot_ids:
+		var score := lower.similarity(slot_id)
+		if score > best_score:
+			best_score = score
+			best = slot_id
+	return best
 
 
 ## Una imagen hacia una ranura. Devuelve "" o el problema.

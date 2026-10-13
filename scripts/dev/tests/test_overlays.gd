@@ -77,7 +77,7 @@ func test_conversation_screen_shows_the_forced_mark() -> bool:
 			"una carta por cada una de la mano (4 del mazo y 1 de Conocimiento)")
 	GameState.play_card(conv.conv, "presion")
 	conv._render()
-	check(conv.get_node("%Elements").get_child(0).text.contains(GameState.data.text("conv_roto")), "el muro roto se ve roto")
+	check(conv.element_text(0).contains(GameState.data.text("conv_roto")), "el muro roto se ve roto")
 	GameState.play_card(conv.conv, "revelar")
 	conv._render()
 	check(conv.get_node("%Result").visible and conv.get_node("%ResultText").visible, "ganar a la fuerza avisa de la marca")

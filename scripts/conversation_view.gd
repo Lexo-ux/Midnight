@@ -5,28 +5,37 @@ extends Control
 ## de 30 minutos con las cartas jugadas (GameState.commit_conversation()).
 ## Irse sin jugar ninguna carta no gasta tiempo.
 ##
-## Arriba: la cara según el Velo, la Confianza (puntos) y los turnos. Luego,
-## en una zona que se desplaza si no cabe (texto grande): los muros y puertas
-## (los descubiertos con su nombre), lo último que se ha dicho, las manos
-## (alcanzan al jugar, esperan) y la mano de cartas en 2 columnas. Abajo, siempre
-## a mano: Terminar, el resultado o la confirmación de salir.
+## Arriba: la cara según el Velo, la Confianza (puntos), los turnos y las manos
+## (alcanzan al jugar, esperan). Luego, fichas de los muros y puertas (por
+## forma: ladrillos, ladrillos partidos, arco cerrado, arco abierto; «?» sin
+## descubrir), lo último que se ha dicho y, abajo del todo, la mano de cartas en
+## 2 columnas (icono de su tipo, título y texto). Con texto Normal todo cabe sin
+## desplazar; con texto grande se desplaza esa parte. Abajo, siempre a mano:
+## Terminar, el resultado o la confirmación de salir.
+## Ganar a la fuerza (Akba) hace temblar la hoja y lo avisa en rosa.
 
 const GameData := preload("res://scripts/game_data.gd")
 const ArtLibrary := preload("res://scripts/art_library.gd")
 const UiMotion := preload("res://scripts/ui_motion.gd")
-const CARD_MIN_HEIGHT: int = 150
+const UiStyle := preload("res://scripts/ui_style.gd")
+const CardButton := preload("res://scripts/card_button.gd")
+const ConvIcon := preload("res://scripts/conv_icon.gd")
+const CHIP_ICON: float = 48.0
+## Lo que tarda en irse la carta jugada antes de repartir la mano otra vez.
+const DISCARD_SECONDS: float = 0.12
 ## Frases que se ven a la vez (las últimas).
 const VISIBLE_LINES: int = 2
 const REACH_SECONDS: float = 0.2
 
 signal closed
 
+@onready var _sheet: PanelContainer = %Sheet
 @onready var _portrait: Control = %Portrait
 @onready var _name: Label = %Name
 @onready var _velo: Label = %Velo
 @onready var _pips: Control = %Pips
 @onready var _counters: Label = %Counters
-@onready var _elements: VBoxContainer = %Elements
+@onready var _elements: HFlowContainer = %Elements
 @onready var _body: ScrollContainer = %Body
 @onready var _lines: VBoxContainer = %Lines
 @onready var _hands: Control = %Hands
@@ -34,6 +43,7 @@ signal closed
 @onready var _result: VBoxContainer = %Result
 @onready var _result_title: Label = %ResultTitle
 @onready var _result_text: Label = %ResultText
+@onready var _result_banner: PanelContainer = %ResultBanner
 @onready var _continue: Button = %Continue
 @onready var _confirm: VBoxContainer = %Confirm
 @onready var _confirm_text: Label = %ConfirmText
@@ -45,6 +55,12 @@ var _art: ArtLibrary
 ## La conversación en juego ({} si no hay).
 var conv: Dictionary = {}
 var _hands_tween: Tween
+## Cartas en pantalla: id -> botón (para animar la que se juega).
+var _card_buttons: Dictionary = {}
+## La mano que se ve (para repartir con animación solo cuando cambia).
+var _hand_key: String = ""
+## Una carta se está yendo: no se puede jugar otra hasta repartir.
+var _busy: bool = false
 
 
 func _ready() -> void:
@@ -68,6 +84,8 @@ func open(person: String) -> void:
 	conv = GameState.start_conversation(person)
 	_confirm.hide()
 	_body.scroll_vertical = 0
+	_hand_key = ""
+	_busy = false
 	UiMotion.fade_in(self, GameState.settings["reduced_motion"])
 	_show_hands("wait", 0.0)
 	_render()
@@ -120,23 +138,47 @@ func _render() -> void:
 		_render_result()
 
 
+## Una ficha por muro o puerta: icono por forma y su nombre (o «?»).
 func _render_elements() -> void:
 	var data := GameState.data
 	_clear(_elements)
 	for element: Dictionary in data.conversations[conv["conversation"]]["elements"]:
 		var id: String = element["id"]
+		var wall: bool = element["kind"] == "wall"
 		var known: bool = conv["revealed"].has(id) or conv["broken"].has(id)
-		var text: String = "%s · %s" % [data.text("conv_muro" if element["kind"] == "wall" else "conv_puerta"),
+		var text: String = "%s · %s" % [data.text("conv_muro" if wall else "conv_puerta"),
 				data.clues[element["clue"]]["title"] if known else "?"]
+		var icon := "wall" if wall else "door"
 		if conv["broken"].has(id):
 			text += " · " + data.text("conv_roto")
+			icon = "wall_broken"
 		elif conv["result"] == "win" and conv["door"] == id:
 			text += " · " + data.text("conv_abierta")
+			icon = "door_open"
+		if not known:
+			icon = "unknown"
+		var chip := PanelContainer.new()
+		chip.theme_type_variation = &"ChipKnown" if known else &"ChipUnknown"
+		var row := HBoxContainer.new()
+		row.theme_type_variation = &"HBoxTight"
+		chip.add_child(row)
+		var picture := TextureRect.new()
+		picture.texture = ConvIcon.make(icon, CHIP_ICON)
+		picture.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(picture)
 		var label := Label.new()
 		label.text = text
-		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		label.theme_type_variation = &"PaperLabel" if known else &"PaperMuted"
-		_elements.add_child(label)
+		row.add_child(label)
+		_elements.add_child(chip)
+
+
+## El texto de la ficha de un muro o puerta (para los tests).
+func element_text(index: int) -> String:
+	var chip := _elements.get_child(index)
+	for label: Node in chip.find_children("*", "Label", true, false):
+		return (label as Label).text
+	return ""
 
 
 func _render_lines() -> void:
@@ -150,28 +192,42 @@ func _render_lines() -> void:
 		_lines.add_child(label)
 
 
+## La mano: una carta por botón. Al cambiar la mano, las cartas se reparten
+## con un fundido escalonado (nada con movimiento reducido).
 func _render_cards(enabled: bool) -> void:
 	var data := GameState.data
 	_clear(_cards)
+	_card_buttons.clear()
+	_busy = false
 	_cards.visible = enabled
 	if not enabled:
 		return
-	for card: String in conv["hand"]:
-		var button := Button.new()
-		button.text = _card_text(data, card)
-		button.custom_minimum_size = Vector2(0, CARD_MIN_HEIGHT)
+	var key := ",".join(PackedStringArray(conv["hand"]))
+	var deal := key != _hand_key
+	_hand_key = key
+	var reduced: bool = GameState.settings["reduced_motion"]
+	for i: int in conv["hand"].size():
+		var card: String = conv["hand"][i]
+		var type := GameState.Conversation.card_type(data, card)
+		var button: Button = CardButton.new()
+		button.theme_type_variation = &"CardKnowledge" if type == "conocimiento" else &"Card"
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		var texts := _card_texts(data, card)
+		button.setup(type, texts[0], texts[1])
 		button.pressed.connect(_play.bind(card))
 		_cards.add_child(button)
+		_card_buttons[card] = button
+		if deal:
+			UiMotion.pop_in(button, i, reduced)
 
 
-func _card_text(data: GameData, card: String) -> String:
+## [título, texto] de una carta.
+func _card_texts(data: GameData, card: String) -> PackedStringArray:
 	var type := GameState.Conversation.card_type(data, card)
 	if type == "conocimiento":
 		var clue := GameState.Conversation.knowledge_clue(card)
-		return "%s\n%s" % [data.cards["conocimiento"]["title"], data.clues[clue]["title"]]
-	return "%s\n%s" % [data.cards[card]["title"], data.cards[card]["text"]]
+		return PackedStringArray([data.cards["conocimiento"]["title"], data.clues[clue]["title"]])
+	return PackedStringArray([data.cards[card]["title"], data.cards[card]["text"]])
 
 
 func _render_result() -> void:
@@ -184,24 +240,41 @@ func _render_result() -> void:
 		_:
 			_result_title.text = data.text("conv_neutral")
 	var marked: bool = conv["result"] == "win" and conv["forced"]
+	_result_banner.visible = marked
 	_result_text.visible = marked
 	_result_text.text = data.text("conv_marcada").format({"nombre": data.people[conv["person"]]["name"]}) if marked else ""
 	_continue.text = data.text("conv_continuar")
 
 
 func _play(card: String) -> void:
+	if _busy:
+		return
 	var revealed_before: int = conv["revealed"].size() + conv["broken"].size()
+	var played: Button = _card_buttons.get(card)
 	if not GameState.play_card(conv, card):
 		return
 	AudioDirector.play_event("card_play")
 	Haptics.play("card")
 	if conv["revealed"].size() + conv["broken"].size() > revealed_before:
 		AudioDirector.play_event("card_flip")
+	var reduced: bool = GameState.settings["reduced_motion"]
 	if conv["result"] == "win":
 		AudioDirector.play_event("door_open")
 		Haptics.play("success")
+		if conv["forced"]:
+			UiMotion.shake(_sheet, reduced)
 	_show_hands("reach", REACH_SECONDS)
-	_render()
+	if reduced or played == null or not played.is_inside_tree():
+		_render()
+		return
+	# La carta jugada sube y se va; luego se reparte la mano nueva.
+	_busy = true
+	var tween := create_tween().set_parallel()
+	tween.tween_property(played, "modulate:a", 0.0, DISCARD_SECONDS)
+	tween.tween_property(played, "position:y", played.position.y - 40.0, DISCARD_SECONDS)
+	tween.chain().tween_callback(func() -> void:
+		_busy = false
+		_render())
 
 
 func _on_finish() -> void:
