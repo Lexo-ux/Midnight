@@ -44,11 +44,11 @@ func test_slice_content_is_present() -> bool:
 func test_broken_copies_fail_with_clear_messages() -> bool:
 	var cases: Array[Dictionary] = [
 		{"name": "clave desconocida", "expect": "clave desconocida \"labell\"",
-			"mutate": func(s: Dictionary) -> void: s["npcs"]["people"][2]["talks"][0]["labell"] = "x"},
+			"mutate": func(s: Dictionary) -> void: s["npcs"]["people"][5]["talks"][0]["labell"] = "x"},
 		{"name": "lugar desconocido en una rutina", "expect": "lugar desconocido \"luna\"",
 			"mutate": func(s: Dictionary) -> void: s["npcs"]["people"][2]["routine"][1]["place"] = "luna"},
 		{"name": "pista desconocida", "expect": "pista desconocida \"pista_fantasma\"",
-			"mutate": func(s: Dictionary) -> void: s["npcs"]["people"][2]["talks"][1]["if"] = {"clue": "pista_fantasma"}},
+			"mutate": func(s: Dictionary) -> void: s["npcs"]["people"][5]["talks"][1]["if"] = {"clue": "pista_fantasma"}},
 		{"name": "bandera que nadie activa", "expect": "la bandera \"bandera_fantasma\" se comprueba",
 			"mutate": func(s: Dictionary) -> void: s["endings"]["endings"][0]["if"] = {"NOT": ["bandera_fantasma"]}},
 		{"name": "bandera que nadie comprueba", "expect": "la bandera \"bandera_suelta\" se activa",
@@ -69,6 +69,18 @@ func test_broken_copies_fail_with_clear_messages() -> bool:
 			"mutate": func(s: Dictionary) -> void: s["events"]["events"][0]["if"] = {"tal_vez": true}},
 		{"name": "evento fuera de los pasos", "expect": "debe caer en un paso de 30 minutos",
 			"mutate": func(s: Dictionary) -> void: s["events"]["events"][0]["time"] = "15:10"},
+		{"name": "carta que no es de su mazo", "expect": "sazil no puede llevar la carta \"presion\"",
+			"mutate": func(s: Dictionary) -> void: s["cards"]["conversations"][0]["decks"]["sazil"].append("presion")},
+		{"name": "Verdad de otra persona", "expect": "la carta \"verdad_beto_imprenta\" abre una puerta de otra persona",
+			"mutate": func(s: Dictionary) -> void: s["cards"]["conversations"][0]["decks"]["sazil"].append("verdad_beto_imprenta")},
+		{"name": "puerta con muro ajeno", "expect": "cita un muro que no es suyo (\"beto_muro_broma\")",
+			"mutate": func(s: Dictionary) -> void: s["cards"]["conversations"][0]["elements"][1]["walls"] = ["beto_muro_broma"]},
+		{"name": "conversación y temas a la vez", "expect": "tiene conversación con cartas; no le pongas también temas",
+			"mutate": _give_lina_a_talk},
+		{"name": "Conocimiento de una puerta desconocida", "expect": "\"opens_door\" nombra una puerta desconocida \"puerta_fantasma\"",
+			"mutate": func(s: Dictionary) -> void: s["clues"]["clues"][0]["opens_door"] = ["puerta_fantasma"]},
+		{"name": "quiebre con una interacción de otro lugar", "expect": "\"interponerse\" no es una interacción de relojeria",
+			"mutate": func(s: Dictionary) -> void: s["events"]["breakpoints"][0]["options"].append("interponerse")},
 	]
 	for test_case: Dictionary in cases:
 		var sources := data_sources()
@@ -92,6 +104,13 @@ func test_malformed_json_fails() -> bool:
 	check(not data.load_sources(sources), "sin events.json no se carga")
 	SaveManager.delete(BROKEN_FILE_PATH)
 	return true
+
+
+## Lina tiene conversación con cartas: un tema de Marcos copiado para ella.
+func _give_lina_a_talk(s: Dictionary) -> void:
+	var talk: Dictionary = s["npcs"]["people"][5]["talks"][0].duplicate(true)
+	talk["id"] = "lina_tema_copiado"
+	s["npcs"]["people"][4]["talks"] = [talk]
 
 
 func _contains(messages: PackedStringArray, fragment: String) -> bool:

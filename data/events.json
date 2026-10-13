@@ -262,6 +262,28 @@
       ]
     }
   ],
+  "breakpoints": [
+    {
+      "id": "quiebre_lina",
+      "place": "relojeria",
+      "person": "lina",
+      "options": [ "sostener_lina", "tirar_de_lina" ],
+      "provisional": true,
+      "intro": "Lina está al borde de la fisura. El patio la llama desde abajo.",
+      "holding": "Sostenla. No la sueltes.",
+      "near_end": "Ya casi. La grieta afloja."
+    },
+    {
+      "id": "quiebre_beto",
+      "place": "plaza",
+      "person": "beto",
+      "options": [ "interponerse", "atraer_marcos" ],
+      "provisional": true,
+      "intro": "Marcos va a por Beto. Tienes un instante para ponerte en medio.",
+      "holding": "Aguanta ahí. Que no pase.",
+      "near_end": "Marcos duda. Un poco más."
+    }
+  ],
   "timeline": [
     { "time": "14:00", "label": "Marcos llega en el tren", "clue": "hecho_llegada_marcos" },
     { "time": "14:30", "label": "Marcos pregunta en el mercado por Beto", "clue": "hecho_marcos_sospecha" },

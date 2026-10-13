@@ -102,6 +102,11 @@ static func hands_slot(actor: String, state: String) -> String:
 	return "hands_%s_%s" % [actor, state]
 
 
+## Cara de un habitante con Velo 2 (rostro) o 3 (retrato).
+static func face_slot(person: String, level: int) -> String:
+	return "npc_%s_velo%d" % [person, level]
+
+
 func has_file(slot_id: String) -> bool:
 	return slots.has(slot_id) and ResourceLoader.exists(slots[slot_id]["path"])
 

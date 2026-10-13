@@ -1,7 +1,7 @@
 extends Control
 ## Primera persona: solo se ven las manos del protagonista controlado, abajo y
 ## en el centro. El estado (idle, hold_letter, point, light, reach, wait) sale de
-## su última acción (data/scenes.json, hands.by_verb). Si hay arte en la ranura
+## su última acción (grip: al sostener en un quiebre) (data/scenes.json, hands.by_verb). Si hay arte en la ranura
 ## `hands_<actor>_<estado>` se usa; si no, manos planas dibujadas aquí:
 ## Sazil, cartera (correa de la bolsa, cartas); Akba, vigilante (mangas del
 ## abrigo y el colgante poliédrico que brilla). Son provisionales.
@@ -111,6 +111,11 @@ func _draw() -> void:
 		"reach":
 			_arm(Vector2(220, 720), Vector2(400, 380), 0.35, "open")
 			_arm(Vector2(860, 720), Vector2(680, 380), -0.35, "open")
+		"grip":
+			# Sostener en un quiebre: las dos manos adelante, cerradas, agarrando.
+			_arm(Vector2(260, 720), Vector2(470, 330), 0.55, "grip")
+			_arm(Vector2(820, 720), Vector2(610, 330), -0.55, "grip")
+			draw_line(Vector2(470, 300), Vector2(610, 300), OUTLINE, 18.0)
 		"wait":
 			_arm(Vector2(300, 720), Vector2(480, 600), 0.9, "rest")
 			_arm(Vector2(780, 720), Vector2(600, 600), -0.9, "rest")

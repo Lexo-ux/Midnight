@@ -21,7 +21,7 @@ func test_every_action_advances_everyone_thirty_minutes() -> bool:
 
 func test_switching_costs_nothing() -> bool:
 	var state := new_state()
-	act(state, "hablar", "mercado", "lina", "lina_hola")
+	talk(state, "lina", ["silencio"])
 	var before := world_text(state)
 	var time := state.current_time()
 	for i: int in 5:
@@ -54,10 +54,10 @@ func test_people_deviate_only_through_flags() -> bool:
 	check(canonical.position_of("tun") == "plaza", "sin intervenir, Tun está en la plaza a las 21:00")
 	check(canonical.position_of("lina") == "umbral", "sin intervenir, la fisura se lleva a Lina")
 	var warned := new_state()
-	act(warned, "hablar", "mercado", "beto", "beto_imprenta_charla")
+	act(warned, "esperar", "mercado")
 	act(warned, "hablar", "mercado", "marcos", "marcos_sazil")
-	act(warned, "hablar", "plaza", "beto", "beto_recado")
-	check(warned.sim.s["flags"].has("beto_avisado"), "el recado activa beto_avisado")
+	talk(warned, "beto", ["escuchar", "verdad_beto_imprenta"])
+	check(warned.sim.s["flags"].has("beto_avisado"), "el recado de la imprenta, en conversación, activa beto_avisado")
 	routine_until(warned, GameData.parse_time("20:00"))
 	check(warned.position_of("beto") == "plaza", "Beto sigue en la plaza hasta su nueva hora")
 	routine_until(warned, GameData.parse_time("20:30"))

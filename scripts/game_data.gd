@@ -16,6 +16,7 @@ const FILES: Dictionary = {
 	"letters": "res://data/letters.json",
 	"ui_text": "res://data/ui_text.json",
 	"scenes": "res://data/scenes.json",
+	"cards": "res://data/cards.json",
 }
 
 const CLUE_TYPES: PackedStringArray = ["Horario", "Hecho", "Secreto", "Rumor", "Clave", "Final"]
@@ -27,6 +28,12 @@ const COMMAND_VERBS: PackedStringArray = [
 	"rutina", "esperar", "observar", "seguir", "hablar", "interactuar", "leer", "retener", "entregar", "desviar",
 ]
 const HOTSPOT_LINKS: PackedStringArray = ["clue", "letter", "event"]
+const CARD_TYPES: PackedStringArray = ["escuchar", "verdad", "silencio", "presion", "revelar", "conocimiento", "recordar"]
+## Cartas que nunca van en un mazo: Conocimiento sale del Cuaderno y Recordar
+## llegará cuando Sazil y Akba se encuentren (fuera del corte vertical).
+const CARDS_OUT_OF_DECKS: PackedStringArray = ["conocimiento", "recordar"]
+const REVELAR_EFFECTS: PackedStringArray = ["open", "confianza", "terrify"]
+const DECISIONS: PackedStringArray = ["sostuvo", "soltó"]
 ## Banderas que activa el motor, no los datos.
 const ENGINE_FLAGS: PackedStringArray = ["akba_forzo"]
 const CONDITION_KEYS: PackedStringArray = [
@@ -71,6 +78,25 @@ var endings: Array[Dictionary] = []
 var letter_ids: Array[String] = []
 var letters: Dictionary = {}
 var ui_text: Dictionary = {}
+
+# --- Conversaciones con cartas (data/cards.json) y momentos de quiebre ---
+## {turns, hand_size, confianza_max, forced_rastro}
+var card_rules: Dictionary = {}
+## tipo de carta -> protagonistas que pueden llevarla.
+var card_owners: Dictionary = {}
+## id -> {id, type, title, text, door, provisional}
+var cards: Dictionary = {}
+## id -> conversación (ver _parse_conversation).
+var conversations: Dictionary = {}
+var conversation_by_person: Dictionary = {}
+## id de muro o puerta -> {id, kind, conversation, person, clue, walls, if, reveal, open, effects}
+var conversation_elements: Dictionary = {}
+## puerta -> pistas del Cuaderno que dan su carta de Conocimiento.
+var door_sources: Dictionary = {}
+## id -> {id, place, person, options, intro, holding, near_end}
+var breakpoints: Dictionary = {}
+## interacción -> id de su momento de quiebre.
+var breakpoint_by_interaction: Dictionary = {}
 
 # --- Escenas (data/scenes.json): solo presentación ---
 var canvas_size: Vector2 = Vector2.ZERO
@@ -139,6 +165,7 @@ func load_sources(sources: Dictionary) -> bool:
 		_parse_endings(sources.get("endings"))
 		_parse_questions(sources.get("clues"))
 		_parse_scenes(sources.get("scenes"))
+		_parse_cards(sources.get("cards"))
 	if _problems.is_empty():
 		_check_cross_references()
 	if not _problems.is_empty():
@@ -382,8 +409,8 @@ func _parse_people_details(source: Dictionary) -> void:
 		var raw: Dictionary = people_list[i]
 		var id: String = raw["id"]
 		var where := "npcs.json, \"%s\"" % id
-		_check_keys(raw, ["id", "name", "protagonist", "trait", "silhouette_path", "colors", "velo",
-				"icon", "delivers_letters", "disabled_if", "routine", "observe", "talks"], where)
+		_check_keys(raw, ["id", "name", "protagonist", "trait", "silhouette_path", "colors", "portrait_credit",
+				"icon", "delivers_letters", "disabled_if", "routine", "observe", "talks", "confianza_inicial", "fragile", "velo3"], where)
 		var person: Dictionary = people[id]
 		person["trait"] = _string(raw.get("trait"), where + ", trait")
 		var path: Variant = raw.get("silhouette_path")
@@ -394,9 +421,19 @@ func _parse_people_details(source: Dictionary) -> void:
 		if _expect_dict(colors, where + ", colors", ["body", "trait"]):
 			person["colors"] = {"body": _color(colors.get("body"), where + ", colors.body"),
 					"trait": _color(colors.get("trait"), where + ", colors.trait")}
-		var velo: Variant = raw.get("velo", {})
-		if _expect_dict(velo, where + ", velo", ["face_path", "portrait_path", "credit"]):
-			person["velo"] = velo.duplicate()
+		person["portrait_credit"] = null
+		var credit: Variant = raw.get("portrait_credit")
+		if credit != null and _expect_dict(credit, where + ", portrait_credit", ["author", "link"]):
+			person["portrait_credit"] = {"author": _string(credit.get("author"), where + ", portrait_credit.author"),
+					"link": str(credit.get("link", ""))}
+		person["confianza_inicial"] = int(raw.get("confianza_inicial", 3))
+		person["fragile"] = raw.get("fragile", false) == true
+		person["velo3"] = null
+		var velo3: Variant = raw.get("velo3")
+		if velo3 != null and _expect_dict(velo3, where + ", velo3", ["secret", "saved_if"]):
+			var secret: Variant = velo3.get("secret")
+			person["velo3"] = {"secret": _clue_ref(secret, where + ", velo3.secret") if secret != null else "",
+					"saved_if": _condition(velo3.get("saved_if"), where + ", velo3.saved_if")}
 		person["protagonist"] = protagonist_ids.has(id)
 		person["icon"] = raw.get("icon", "")
 		if person["protagonist"] and not person["icon"] in ["sol", "luna"]:
@@ -465,7 +502,7 @@ func _parse_routine(source: Variant, person: String, where: String) -> Array[Dic
 
 
 func _parse_talk(raw: Variant, person: String, where: String) -> void:
-	if not _expect_dict(raw, where, ["id", "label", "actor", "if", "lines", "effects"]):
+	if not _expect_dict(raw, where, ["id", "label", "actor", "if", "lines", "effects", "provisional"]):
 		return
 	var id := _id(raw.get("id"), where, talks)
 	if id == "":
@@ -528,7 +565,7 @@ func _parse_clues(source: Variant) -> void:
 	for i: int in list.size():
 		var raw: Variant = list[i]
 		var where := "clues.json, pista #%d" % i
-		if not _expect_dict(raw, where, ["id", "type", "provisional", "title", "text", "person", "place", "time"]):
+		if not _expect_dict(raw, where, ["id", "type", "provisional", "title", "text", "person", "place", "time", "opens_door"]):
 			continue
 		var id := _id(raw.get("id"), where, clues)
 		if id == "":
@@ -547,7 +584,7 @@ func _parse_clues(source: Variant) -> void:
 		clues[id] = {"id": id, "type": type, "title": _string(raw.get("title"), where + ", title"),
 				"text": _string(raw.get("text"), where + ", text"), "person": person, "place": place,
 				"time": _time(raw["time"], where + ", time") if raw.has("time") else -1,
-				"provisional": raw.get("provisional", false) == true}
+				"provisional": raw.get("provisional", false) == true, "opens_door": raw.get("opens_door", [])}
 
 
 func _parse_questions(source: Dictionary) -> void:
@@ -618,7 +655,7 @@ func _parse_letters(source: Variant) -> void:
 
 
 func _parse_events(source: Variant) -> void:
-	if not _expect_dict(source, "events.json", ["events", "timeline"]):
+	if not _expect_dict(source, "events.json", ["events", "breakpoints", "timeline"]):
 		return
 	var event_ids: Dictionary = {}
 	for i: int in source.get("events", []).size():
@@ -666,6 +703,7 @@ func _parse_events(source: Variant) -> void:
 						"effects": _effects(raw_variant.get("effects", {}), variant_where), "witness": witness})
 		events.append({"id": id, "time": time_value, "place": place,
 				"if": _condition(raw.get("if"), where + ", if"), "variants": variants})
+	_parse_breakpoints(source.get("breakpoints", []))
 	for i: int in source.get("timeline", []).size():
 		var raw: Variant = source["timeline"][i]
 		var where := "events.json, línea del día #%d" % i
@@ -746,6 +784,180 @@ func _parse_scenes(source: Variant) -> void:
 			if not scenes.has(place):
 				_problems.append("%s: falta la escena del lugar visible \"%s\"." % [WHERE, place])
 	_parse_map(source.get("map"), WHERE + ", map")
+
+
+## Las conversaciones con cartas: reglas, cartas y, por persona, muros,
+## puertas, silencios y los mazos de Sazil y Akba (data/cards.json).
+func _parse_cards(source: Variant) -> void:
+	const WHERE := "cards.json"
+	if not _expect_dict(source, WHERE, ["rules", "card_owners", "cards", "conversations"]):
+		return
+	var rules: Variant = source.get("rules")
+	if _expect_dict(rules, WHERE + ", rules", ["turns", "hand_size", "confianza_max", "forced_rastro"]):
+		for key: String in ["turns", "hand_size", "confianza_max", "forced_rastro"]:
+			card_rules[key] = _int(rules.get(key), "%s, rules.%s" % [WHERE, key], 1)
+	var owners: Variant = source.get("card_owners")
+	if _expect_dict(owners, WHERE + ", card_owners", Array(CARD_TYPES)):
+		for type: String in CARD_TYPES:
+			var list: Variant = owners.get(type, [])
+			if not list is Array or not list.all(func(actor: Variant) -> bool: return protagonist_ids.has(actor)):
+				_problems.append("%s, card_owners.%s: debe ser una lista de protagonistas." % [WHERE, type])
+				list = []
+			card_owners[type] = list
+	for i: int in source.get("cards", []).size():
+		var raw: Variant = source["cards"][i]
+		var where := "%s, carta #%d" % [WHERE, i]
+		if not _expect_dict(raw, where, ["id", "type", "door", "provisional", "title", "text"]):
+			continue
+		var id := _id(raw.get("id"), where, cards)
+		if id == "":
+			continue
+		var type: String = raw.get("type", "")
+		if not CARD_TYPES.has(type):
+			_problems.append("%s: \"type\" debe ser uno de %s." % [where, CARD_TYPES])
+		cards[id] = {"id": id, "type": type, "door": str(raw.get("door", "")), "provisional": raw.get("provisional", false) == true,
+				"title": _string(raw.get("title"), where + ", title"), "text": _string(raw.get("text"), where + ", text")}
+	for type: String in ["escuchar", "silencio", "presion", "revelar", "conocimiento"]:
+		if not cards.has(type) or cards[type]["type"] != type:
+			_problems.append("%s: falta la carta genérica \"%s\"." % [WHERE, type])
+	for i: int in source.get("conversations", []).size():
+		_parse_conversation(source["conversations"][i], "%s, conversación #%d" % [WHERE, i])
+	for clue_id: String in clue_ids:
+		for door: Variant in clues[clue_id].get("opens_door", []):
+			if not conversation_elements.has(door) or conversation_elements[door]["kind"] != "door":
+				_problems.append("clues.json, \"%s\": \"opens_door\" nombra una puerta desconocida \"%s\"." % [clue_id, door])
+				continue
+			if not door_sources.has(door):
+				door_sources[door] = []
+			door_sources[door].append(clue_id)
+			referenced_clues[clue_id] = true
+
+
+func _parse_conversation(raw: Variant, where: String) -> void:
+	if not _expect_dict(raw, where, ["id", "person", "label", "provisional", "opening", "fear", "wrong", "nothing",
+			"silence_end", "neutral", "closed", "presion", "revelar", "trust", "elements", "silence", "decks"]):
+		return
+	var id := _id(raw.get("id"), where, conversations)
+	if id == "":
+		return
+	where = "cards.json, conversación \"%s\"" % id
+	var person: String = raw.get("person", "")
+	if not people.has(person) or is_protagonist(person) or conversation_by_person.has(person):
+		_problems.append("%s: \"person\" debe ser un habitante sin otra conversación (\"%s\")." % [where, person])
+		return
+	if talks.values().any(func(talk: Dictionary) -> bool: return talk["person"] == person):
+		_problems.append("%s: %s tiene conversación con cartas; no le pongas también temas en npcs.json." % [where, person])
+	var conversation: Dictionary = {"id": id, "person": person, "label": _string(raw.get("label"), where + ", label"),
+			"opening": {}, "elements": [], "silence": [], "decks": {}, "trust": null}
+	var opening: Variant = raw.get("opening")
+	if _expect_dict(opening, where + ", opening", protagonist_ids):
+		for actor: String in protagonist_ids:
+			conversation["opening"][actor] = _string(opening.get(actor), "%s, opening.%s" % [where, actor])
+	for key: String in ["fear", "wrong", "nothing", "silence_end", "neutral", "closed", "presion"]:
+		conversation[key] = _string(raw.get(key), "%s, %s" % [where, key])
+	var element_ids: Dictionary = {}
+	for i: int in raw.get("elements", []).size():
+		var element := _parse_element(raw["elements"][i], id, person, "%s, elemento #%d" % [where, i])
+		if not element.is_empty():
+			element_ids[element["id"]] = element["kind"]
+			conversation["elements"].append(element)
+	for element: Dictionary in conversation["elements"]:
+		for wall: String in element.get("walls", []):
+			if element_ids.get(wall, "") != "wall":
+				_problems.append("%s: la puerta \"%s\" cita un muro que no es suyo (\"%s\")." % [where, element["id"], wall])
+	if not element_ids.values().has("door"):
+		_problems.append(where + ": necesita al menos una puerta.")
+	var revelar: Variant = raw.get("revelar")
+	if _expect_dict(revelar, where + ", revelar", ["effect", "door", "amount", "text"]):
+		conversation["revelar"] = {"effect": revelar.get("effect", ""), "door": str(revelar.get("door", "")),
+				"amount": int(revelar.get("amount", 0)), "text": _string(revelar.get("text"), where + ", revelar.text")}
+		if not REVELAR_EFFECTS.has(conversation["revelar"]["effect"]):
+			_problems.append("%s: revelar.effect debe ser uno de %s." % [where, REVELAR_EFFECTS])
+		elif conversation["revelar"]["effect"] == "open" and element_ids.get(conversation["revelar"]["door"], "") != "door":
+			_problems.append(where + ": revelar abre una puerta que no es suya.")
+	var trust: Variant = raw.get("trust")
+	if trust != null and _expect_dict(trust, where + ", trust", ["actor", "min", "set"]):
+		if not protagonist_ids.has(trust.get("actor", "")):
+			_problems.append(where + ": trust.actor debe ser un protagonista.")
+		conversation["trust"] = {"actor": trust.get("actor", ""), "min": _int(trust.get("min"), where + ", trust.min", 1),
+				"set": _effects({"set": trust.get("set", [])}, where + ", trust")["set"]}
+	for i: int in raw.get("silence", []).size():
+		var line: Variant = raw["silence"][i]
+		var line_where := "%s, silencio #%d" % [where, i]
+		if _expect_dict(line, line_where, ["if", "text", "clues"]):
+			conversation["silence"].append({"if": _condition(line.get("if"), line_where + ", if"),
+					"text": _string(line.get("text"), line_where + ", text"), "clues": _clue_list(line.get("clues", []), line_where)})
+	var decks: Variant = raw.get("decks")
+	if _expect_dict(decks, where + ", decks", protagonist_ids):
+		for actor: String in protagonist_ids:
+			var deck: Variant = decks.get(actor)
+			if not deck is Array or deck.is_empty():
+				_problems.append("%s: falta el mazo de %s." % [where, actor])
+				continue
+			for card_id: Variant in deck:
+				var card: Dictionary = cards.get(card_id, {})
+				if card.is_empty() or CARDS_OUT_OF_DECKS.has(card["type"]) or not card_owners.get(card["type"], []).has(actor):
+					_problems.append("%s: %s no puede llevar la carta \"%s\" en su mazo." % [where, actor, card_id])
+				elif card["type"] == "verdad" and card["door"] != "" and element_ids.get(card["door"], "") != "door":
+					_problems.append("%s: la carta \"%s\" abre una puerta de otra persona." % [where, card_id])
+			conversation["decks"][actor] = PackedStringArray(deck)
+	conversations[id] = conversation
+	conversation_by_person[person] = id
+
+
+func _parse_element(raw: Variant, conversation: String, person: String, where: String) -> Dictionary:
+	if not _expect_dict(raw, where, ["id", "kind", "clue", "walls", "if", "reveal", "open", "effects"]):
+		return {}
+	var id := _id(raw.get("id"), where, conversation_elements)
+	if id == "":
+		return {}
+	where = "cards.json, \"%s\"" % id
+	var kind: String = raw.get("kind", "")
+	if not kind in ["wall", "door"]:
+		_problems.append(where + ": \"kind\" debe ser \"wall\" o \"door\".")
+	var clue := _clue_ref(raw.get("clue"), where + ", clue")
+	# Descubrirlo lo apunta en el Cuaderno, y lo apuntado cambia las conversaciones de otros bucles.
+	_granted_clues[clue] = true
+	referenced_clues[clue] = true
+	var element: Dictionary = {"id": id, "kind": kind, "conversation": conversation, "person": person, "clue": clue,
+			"reveal": _string(raw.get("reveal"), where + ", reveal")}
+	if kind == "door":
+		element["walls"] = raw.get("walls", [])
+		element["if"] = _condition(raw.get("if"), where + ", if")
+		element["open"] = _string(raw.get("open"), where + ", open")
+		element["effects"] = _effects(raw.get("effects", {}), where)
+	conversation_elements[id] = element
+	return element
+
+
+func _parse_breakpoints(source: Variant) -> void:
+	if not source is Array:
+		_problems.append("events.json: \"breakpoints\" debe ser una lista.")
+		return
+	for i: int in source.size():
+		var raw: Variant = source[i]
+		var where := "events.json, quiebre #%d" % i
+		if not _expect_dict(raw, where, ["id", "place", "person", "options", "provisional", "intro", "holding", "near_end"]):
+			continue
+		var id := _id(raw.get("id"), where, breakpoints)
+		if id == "":
+			continue
+		where = "events.json, quiebre \"%s\"" % id
+		var place: String = raw.get("place", "")
+		if not locations.has(place) or not people.has(raw.get("person", "")):
+			_problems.append(where + ": lugar o persona desconocidos.")
+		var options: Variant = raw.get("options")
+		if not options is Array or options.is_empty():
+			_problems.append(where + ": \"options\" debe ser una lista de interacciones.")
+			options = []
+		for option: Variant in options:
+			if not interactions.has(option) or interactions[option]["place"] != place or breakpoint_by_interaction.has(option):
+				_problems.append("%s: \"%s\" no es una interacción de %s (o ya está en otro quiebre)." % [where, option, place])
+				continue
+			breakpoint_by_interaction[option] = id
+		breakpoints[id] = {"id": id, "place": place, "person": raw.get("person", ""), "options": options,
+				"intro": _string(raw.get("intro"), where + ", intro"), "holding": _string(raw.get("holding"), where + ", holding"),
+				"near_end": _string(raw.get("near_end"), where + ", near_end")}
 
 
 ## Fotogramas clave por hora (en orden), con números en `numbers` y colores en `colors`.
@@ -1211,3 +1423,12 @@ func _clear() -> void:
 	hotspots.clear()
 	map_nodes.clear()
 	map_roads.clear()
+	card_rules.clear()
+	card_owners.clear()
+	cards.clear()
+	conversations.clear()
+	conversation_by_person.clear()
+	conversation_elements.clear()
+	door_sources.clear()
+	breakpoints.clear()
+	breakpoint_by_interaction.clear()

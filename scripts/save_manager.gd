@@ -10,10 +10,23 @@ const GameData := preload("res://scripts/game_data.gd")
 ## Versión 1: prototipo de las Tasks 01-02 (se descarta). Versión 2: Medianoche en
 ## Much (Task 03). Versión 3: añade las estaciones de cada protagonista en cada
 ## lugar y la estación de los puntos interactivos en la ruta (Task 05).
+## Versión 4 (Task 04): marcas de Akba, Velo 2-3, el estado de las
+## conversaciones del bucle, las cartas y decisiones de quiebre en la ruta y los
+## ajustes de sonido, vibración, quiebres y consejos.
 ## Súbela si cambia el formato y añade aquí la migración desde la anterior.
-const SAVE_VERSION: int = 3
-## Versiones que se migran al cargar.
-const MIGRATABLE_VERSIONS: Array[int] = [2]
+const SAVE_VERSION: int = 4
+## Versiones que se migran al cargar (encadenadas: 2 -> 3 -> 4).
+const MIGRATABLE_VERSIONS: Array[int] = [2, 3]
+const HAPTIC_LEVELS: PackedStringArray = ["off", "low", "normal"]
+const BREAKPOINT_MODES: PackedStringArray = ["hold", "toggle"]
+const BREAKPOINT_TIMES: PackedStringArray = ["20", "40", "none"]
+const VOLUME_KEYS: PackedStringArray = ["volume_master", "volume_music", "volume_ambience", "volume_sfx"]
+## Ajustes de una partida nueva (y de lo que falte al migrar).
+const DEFAULT_SETTINGS: Dictionary = {
+	"reduced_motion": false, "text_size": 1,
+	"volume_master": 0.8, "volume_music": 0.7, "volume_ambience": 0.6, "volume_sfx": 0.8, "mute": false,
+	"haptics": "normal", "breakpoint_mode": "hold", "breakpoint_time": "20", "breakpoint_chosen": false, "tips_seen": false,
+}
 
 ## Lo que devuelve _whole() cuando un número no vale.
 const INVALID: int = -1_000_000
@@ -63,6 +76,8 @@ static func validate(save: Variant, data: GameData) -> Dictionary:
 		return _invalid("versión %s no compatible, se esperaba %d" % [int(version) if _is_whole(version) else version, SAVE_VERSION])
 	if int(version) == 2:
 		root = _migrate_from_v2(root)
+	if int(version) <= 3:
+		root = _migrate_from_v3(root, data)
 	var loop_number := _whole(root.get("loop_number"), 1, 1_000_000)
 	if loop_number == INVALID:
 		return _invalid("loop_number no válido")
@@ -87,11 +102,12 @@ static func validate(save: Variant, data: GameData) -> Dictionary:
 	if velo.has("error") or endings_seen.has("error") or hints.has("error"):
 		return _invalid("Velo, finales vistos o pistas pedidas no válidos")
 
-	var settings_data: Variant = root.get("settings")
-	if not settings_data is Dictionary or not settings_data.get("reduced_motion") is bool \
-			or _whole(settings_data.get("text_size"), 0, data.text_sizes.size() - 1) == INVALID or settings_data.size() != 2:
+	var marks := _marks(root.get("marks"), data, loop_number)
+	if marks.has("error"):
+		return _invalid("marcas de Akba no válidas")
+	var settings := _settings(root.get("settings"), data)
+	if settings.has("error"):
 		return _invalid("ajustes no válidos")
-	var settings: Dictionary = {"reduced_motion": settings_data["reduced_motion"], "text_size": int(settings_data["text_size"])}
 
 	var last_route: Variant = _route(root.get("last_route"), data)
 	if last_route == null:
@@ -106,6 +122,7 @@ static func validate(save: Variant, data: GameData) -> Dictionary:
 			"loop_number": loop_number,
 			"cuaderno": cuaderno,
 			"velo": velo,
+			"marks": marks,
 			"endings_seen": endings_seen,
 			"hints": hints,
 			"settings": settings,
@@ -202,7 +219,10 @@ static func _loop_state(source: Variant, data: GameData) -> Dictionary:
 	var stations := _stations(source.get("stations"), data)
 	if stations.has("error"):
 		return {"error": "estaciones no válidas"}
-	if source.size() != 15:
+	var conversations := _conversations(source.get("conversations"), data)
+	if conversations.has("error"):
+		return {"error": "conversaciones del bucle no válidas"}
+	if source.size() != 16:
 		return {"error": "el estado del bucle tiene claves de más o de menos"}
 
 	return {
@@ -221,6 +241,7 @@ static func _loop_state(source: Variant, data: GameData) -> Dictionary:
 		"outcome": {"lines": lines, "clues": outcome_clues},
 		"ending": ending,
 		"stations": stations,
+		"conversations": conversations,
 	}
 
 
@@ -231,6 +252,101 @@ static func _migrate_from_v2(save: Dictionary) -> Dictionary:
 	if migrated.get("loop") is Dictionary and not migrated["loop"].has("stations"):
 		migrated["loop"]["stations"] = {}
 	return migrated
+
+
+## De la 3 a la 4: sin marcas ni conversaciones, ajustes nuevos por defecto, y
+## los temas guionizados que pasaron a conversaciones con cartas (Lina, Tun,
+## Beto, Ruth) se quedan en la ruta como «esperar» allí: mismo tiempo y lugar.
+## Lo que ya activaron sigue en las banderas del bucle; al repetir la ruta no se
+## repite.
+static func _migrate_from_v3(save: Dictionary, data: GameData) -> Dictionary:
+	var migrated: Dictionary = save.duplicate(true)
+	if migrated.get("loop") is Dictionary:
+		if not migrated["loop"].has("conversations"):
+			migrated["loop"]["conversations"] = {}
+		if migrated["loop"].get("route") is Array:
+			_replace_removed_talks(migrated["loop"]["route"], data)
+	if migrated.get("last_route") is Array:
+		_replace_removed_talks(migrated["last_route"], data)
+	if not migrated.has("marks"):
+		migrated["marks"] = {}
+	if migrated.get("settings") is Dictionary:
+		var settings: Dictionary = DEFAULT_SETTINGS.duplicate()
+		settings.merge(migrated["settings"], true)
+		migrated["settings"] = settings
+	return migrated
+
+
+static func _replace_removed_talks(route: Array, data: GameData) -> void:
+	for entry: Variant in route:
+		if not entry is Dictionary or not entry.get("command") is Dictionary:
+			continue
+		var command: Dictionary = entry["command"]
+		var id: Variant = command.get("id", "")
+		if command.get("verb", "") == "hablar" and id is String and not data.talks.has(id) and not data.conversations.has(id):
+			command["verb"] = "esperar"
+			command["target"] = ""
+			command["id"] = ""
+
+
+static func _settings(source: Variant, data: GameData) -> Dictionary:
+	if not source is Dictionary or source.size() != DEFAULT_SETTINGS.size():
+		return {"error": true}
+	for key: String in ["reduced_motion", "mute", "breakpoint_chosen", "tips_seen"]:
+		if not source.get(key) is bool:
+			return {"error": true}
+	for key: String in VOLUME_KEYS:
+		var volume: Variant = source.get(key)
+		if not (volume is float or volume is int) or volume < 0.0 or volume > 1.0:
+			return {"error": true}
+	if _whole(source.get("text_size"), 0, data.text_sizes.size() - 1) == INVALID or not HAPTIC_LEVELS.has(source.get("haptics", "")) \
+			or not BREAKPOINT_MODES.has(source.get("breakpoint_mode", "")) or not BREAKPOINT_TIMES.has(source.get("breakpoint_time", "")):
+		return {"error": true}
+	var settings: Dictionary = source.duplicate()
+	settings["text_size"] = int(source["text_size"])
+	for key: String in VOLUME_KEYS:
+		settings[key] = float(source[key])
+	return settings
+
+
+## {persona: {count, loop}}: cuántas veces la marcó Akba y en qué bucle la última.
+static func _marks(source: Variant, data: GameData, loop_number: int) -> Dictionary:
+	if not source is Dictionary:
+		return {"error": true}
+	var result: Dictionary = {}
+	for person: Variant in source:
+		var mark: Variant = source[person]
+		if not data.npc_ids().has(str(person)) or not mark is Dictionary or mark.size() != 2:
+			return {"error": true}
+		var count := _whole(mark.get("count"), 1, 1_000_000)
+		var loop := _whole(mark.get("loop"), 1, loop_number)
+		if count == INVALID or loop == INVALID:
+			return {"error": true}
+		result[str(person)] = {"count": count, "loop": loop}
+	return result
+
+
+## {persona: {confianza, closed, won}} de las conversaciones de este bucle.
+static func _conversations(source: Variant, data: GameData) -> Dictionary:
+	if not source is Dictionary:
+		return {"error": true}
+	var result: Dictionary = {}
+	for person: Variant in source:
+		var state: Variant = source[person]
+		var conversation_id: String = data.conversation_by_person.get(str(person), "")
+		if conversation_id == "" or not state is Dictionary or state.size() != 3 or not state.get("closed") is bool \
+				or not state.get("won") is Array:
+			return {"error": true}
+		var confianza := _whole(state.get("confianza"), 0, data.card_rules["confianza_max"])
+		if confianza == INVALID:
+			return {"error": true}
+		var won: Array = []
+		for door: Variant in state["won"]:
+			if not data.conversation_elements.has(door) or data.conversation_elements[door]["conversation"] != conversation_id:
+				return {"error": true}
+			won.append(door)
+		result[str(person)] = {"confianza": confianza, "closed": state["closed"], "won": won}
+	return result
 
 
 ## {protagonista: {lugar con escena: estación}}; {"error": ...} si no encaja.
@@ -274,7 +390,8 @@ static func _route(source: Variant, data: GameData) -> Variant:
 		if not command is Dictionary or not GameData.COMMAND_VERBS.has(command.get("verb", "")):
 			return null
 		var station: Variant = command.get("station", "")
-		if command.size() != (5 if command.has("station") else 4):
+		var extras: int = int(command.has("station")) + int(command.has("cards")) + int(command.has("decision"))
+		if command.size() != 4 + extras:
 			return null
 		for key: String in ["place", "target", "id"]:
 			if not command.get(key) is String:
@@ -284,15 +401,39 @@ static func _route(source: Variant, data: GameData) -> Variant:
 		if command["target"] != "" and not data.people.has(command["target"]):
 			return null
 		var id: String = command["id"]
-		if id != "" and not (data.talks.has(id) or data.interactions.has(id) or data.letters.has(id)):
+		if id != "" and not (data.talks.has(id) or data.interactions.has(id) or data.letters.has(id) or data.conversations.has(id)):
 			return null
 		var plain: Dictionary = {"verb": command["verb"], "place": command["place"], "target": command["target"], "id": id}
 		if command.has("station"):
 			if not station is String or not data.has_scene(command["place"]) or not data.scenes[command["place"]]["station_index"].has(station):
 				return null
 			plain["station"] = station
+		if command.has("cards"):
+			if not data.conversations.has(id) or not _cards_valid(command["cards"], data):
+				return null
+			plain["cards"] = Array(command["cards"]).duplicate()
+		if command.has("decision"):
+			if not data.breakpoint_by_interaction.has(id) or not GameData.DECISIONS.has(command["decision"]):
+				return null
+			plain["decision"] = command["decision"]
 		route.append({"t": t, "command": plain})
 	return route
+
+
+## Cartas jugadas en una conversación: ids de carta o "conocimiento:pista:puerta".
+static func _cards_valid(source: Variant, data: GameData) -> bool:
+	if not source is Array or source.is_empty():
+		return false
+	for card: Variant in source:
+		if not card is String:
+			return false
+		if card.begins_with("conocimiento:"):
+			var parts: PackedStringArray = card.split(":")
+			if parts.size() != 3 or not data.clues.has(parts[1]) or not data.conversation_elements.has(parts[2]):
+				return false
+		elif not data.cards.has(card):
+			return false
+	return true
 
 
 ## {id: entero entre lo y hi} con ids permitidos; {"error": ...} si no encaja.

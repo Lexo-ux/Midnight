@@ -23,7 +23,7 @@
     "akba": { "tint": "#d8e4ff", "vignette": 0.12, "overlay": true }
   },
   "hands": {
-    "states": [ "idle", "hold_letter", "point", "light", "reach", "wait" ],
+    "states": [ "idle", "hold_letter", "point", "light", "reach", "wait", "grip" ],
     "by_verb": {
       "sazil": {
         "rutina": "wait", "esperar": "wait", "observar": "point", "seguir": "point", "hablar": "idle", "interactuar": "reach",

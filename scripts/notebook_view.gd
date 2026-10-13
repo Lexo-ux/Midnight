@@ -1,11 +1,16 @@
 extends Control
 ## El Cuaderno del Umbral: Personas, Lugares, La línea del día y Preguntas
-## abiertas (con tres niveles de pista que se piden a mano). Solo lee GameState;
-## pedir una pista no toca la simulación.
+## abiertas (con tres niveles de pista que se piden a mano, o con «¿Qué hago?»).
+## Solo lee GameState; pedir una pista no toca la simulación.
+##
+## Personas: la cara según el Velo (silueta, rasgos, rostro, retrato; ver
+## scripts/portrait_view.gd) y, con retrato de la comunidad, su crédito.
 
-const SILHOUETTE_SCENE := preload("res://scenes/silhouette.tscn")
+const ArtLibrary := preload("res://scripts/art_library.gd")
+const PortraitView := preload("res://scripts/portrait_view.gd")
+const UiMotion := preload("res://scripts/ui_motion.gd")
 const PAGES: PackedStringArray = ["personas", "lugares", "linea", "preguntas"]
-const SILHOUETTE_SIZE: int = 140
+const SILHOUETTE_SIZE: int = 160
 
 @onready var _title: Label = %Title
 @onready var _tabs: HBoxContainer = %Tabs
@@ -14,6 +19,9 @@ const SILHOUETTE_SIZE: int = 140
 @onready var _close: Button = %Close
 
 var page: String = "personas"
+## Aviso de «¿Qué hago?» cuando ya no quedan pistas ("" = ninguno).
+var notice: String = ""
+var _art: ArtLibrary
 
 
 func _ready() -> void:
@@ -23,15 +31,29 @@ func _ready() -> void:
 			_render())
 
 
+func bind(art: ArtLibrary) -> void:
+	_art = art
+
+
 func open(start_page: String = "") -> void:
 	if start_page != "":
 		page = start_page
-	show()
+	notice = ""
+	UiMotion.fade_in(self, GameState.settings["reduced_motion"])
+	_render()
+
+
+## «¿Qué hago?»: la siguiente pista de la primera pregunta abierta, en su página.
+func what_now() -> void:
+	var question := GameState.next_hint()
+	open("preguntas")
+	notice = "" if question != "" else GameState.data.text("que_hago_nada")
 	_render()
 
 
 func show_page(page_id: String) -> void:
 	page = page_id
+	notice = ""
 	_scroll.scroll_vertical = 0
 	_render()
 
@@ -68,16 +90,22 @@ func _render_people() -> void:
 	for id: String in data.npc_ids():
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 24)
-		var silhouette: Control = SILHOUETTE_SCENE.instantiate()
-		silhouette.custom_minimum_size = Vector2(SILHOUETTE_SIZE, SILHOUETTE_SIZE)
-		silhouette.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-		row.add_child(silhouette)
-		silhouette.show_person(data, id, GameState.velo_level(id))
+		var level := GameState.velo_level(id)
+		var portrait := PortraitView.new()
+		portrait.custom_minimum_size = Vector2(SILHOUETTE_SIZE, SILHOUETTE_SIZE)
+		portrait.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		row.add_child(portrait)
+		portrait.show_person(data, _art, id, level)
 		var texts := VBoxContainer.new()
 		texts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(texts)
-		var level := GameState.velo_level(id)
-		texts.add_child(_label("%s · %s" % [data.people[id]["name"], data.text("velo_%d" % mini(level, 1))], &"PaperTitle"))
+		texts.add_child(_label("%s · %s" % [data.people[id]["name"], data.text("velo_%d" % mini(level, 3))], &"PaperTitle"))
+		var credit: Variant = data.people[id]["portrait_credit"]
+		if level >= 3 and credit != null:
+			var author: String = credit["author"]
+			if credit["link"] != "":
+				author += " · " + credit["link"]
+			texts.add_child(_label(data.text("velo_credito").format({"autor": author}), &"PaperMuted"))
 		for segment: Dictionary in data.relevant_schedule(id):
 			var known := GameState.has_clue("horario_" + segment["id"])
 			texts.add_child(_label("%s  %s" % [_time(segment["from"]), segment["label"] if known else data.text("horario_hueco")]))
@@ -122,6 +150,13 @@ func _render_timeline() -> void:
 func _render_questions() -> void:
 	var data := GameState.data
 	var questions := GameState.get_questions()
+	var ask := Button.new()
+	ask.text = data.text("que_hago")
+	ask.custom_minimum_size = Vector2(0, 120)
+	ask.pressed.connect(what_now)
+	_content.add_child(ask)
+	if notice != "":
+		_content.add_child(_label(notice, &"PaperMuted"))
 	if questions.is_empty():
 		_content.add_child(_label(data.text("preguntas_nada")))
 	var hint_names: PackedStringArray = data.text("preguntas_pista_nombres").split("|")

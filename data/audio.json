@@ -1,0 +1,16 @@
+{
+  "events": {
+    "switch_sazil": "motif_high",
+    "switch_akba": "motif_low",
+    "card_play": "card_tick",
+    "card_flip": "card_flip",
+    "door_open": "shimmer",
+    "umbral": "shimmer",
+    "sustain_success": "motif_high",
+    "let_go": "card_flip",
+    "union_chord": null
+  },
+  "ambience": { "day": "ambience_day", "night": "ambience_night" },
+  "clock": { "sound": "clock_tick", "drift_pitch": 0.92 },
+  "sustain": "sustain_hum"
+}

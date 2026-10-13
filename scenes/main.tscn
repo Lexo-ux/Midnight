@@ -9,6 +9,9 @@
 [ext_resource type="PackedScene" path="res://scenes/tools_view.tscn" id="5_tools"]
 [ext_resource type="PackedScene" path="res://scenes/settings_view.tscn" id="6_settings"]
 [ext_resource type="PackedScene" path="res://scenes/loop_end_view.tscn" id="7_loop_end"]
+[ext_resource type="PackedScene" path="res://scenes/conversation_view.tscn" id="10_conversation"]
+[ext_resource type="PackedScene" path="res://scenes/breakpoint_view.tscn" id="11_breakpoint"]
+[ext_resource type="PackedScene" path="res://scenes/tips_view.tscn" id="12_tips"]
 
 [sub_resource type="StyleBoxFlat" id="Button_normal"]
 content_margin_left = 28.0
@@ -289,6 +292,11 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
 
+[node name="WhatNowButton" type="Button" parent="Top/Box/Header"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 120)
+layout_mode = 2
+
 [node name="SettingsButton" type="Button" parent="Top/Box/Header"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(120, 120)
@@ -418,5 +426,17 @@ unique_name_in_owner = true
 layout_mode = 1
 
 [node name="NotebookView" parent="." instance=ExtResource("4_notebook")]
+unique_name_in_owner = true
+layout_mode = 1
+
+[node name="ConversationView" parent="." instance=ExtResource("10_conversation")]
+unique_name_in_owner = true
+layout_mode = 1
+
+[node name="BreakpointView" parent="." instance=ExtResource("11_breakpoint")]
+unique_name_in_owner = true
+layout_mode = 1
+
+[node name="TipsView" parent="." instance=ExtResource("12_tips")]
 unique_name_in_owner = true
 layout_mode = 1

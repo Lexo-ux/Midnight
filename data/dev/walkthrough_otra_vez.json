@@ -1,12 +1,12 @@
 {
-  "description": "El día canónico casi sin tocar: Sazil curiosea en el mercado y luego los dos siguen su rutina hasta medianoche.",
+  "description": "El día canónico casi sin tocar: Sazil curiosea en el mercado y calla ante Beto; a las 15:00 Akba llega al borde de la fisura pero suelta a Lina (el quiebre se suelta: pasa lo de siempre) y luego los dos siguen su rutina hasta medianoche.",
   "expected_ending": "otra_vez",
   "expected_loop": 1,
   "steps": [
     { "act": { "verb": "observar", "place": "mercado", "target": "", "id": "" } },
-    { "act": { "verb": "hablar", "place": "mercado", "target": "beto", "id": "beto_titular" } },
+    { "act": { "verb": "hablar", "place": "mercado", "target": "beto", "id": "conv_beto", "cards": [ "silencio" ] } },
     { "switch": "akba" },
-    { "act": { "verb": "observar", "place": "relojeria", "target": "", "id": "" } },
+    { "act": { "verb": "interactuar", "place": "relojeria", "target": "", "id": "sostener_lina", "decision": "soltó" } },
     { "skip": "24:00" }
   ]
 }

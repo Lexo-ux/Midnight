@@ -1,0 +1,206 @@
+{
+  "rules": { "turns": 4, "hand_size": 4, "confianza_max": 5, "forced_rastro": 1 },
+  "card_owners": {
+    "escuchar": [ "sazil", "akba" ],
+    "verdad": [ "sazil" ],
+    "silencio": [ "sazil", "akba" ],
+    "presion": [ "akba" ],
+    "revelar": [ "akba" ],
+    "conocimiento": [ "sazil", "akba" ],
+    "recordar": [ "sazil" ]
+  },
+  "cards": [
+    { "id": "escuchar", "type": "escuchar", "title": "Escuchar", "text": "Callas y escuchas. Descubre el siguiente muro o puerta." },
+    { "id": "silencio", "type": "silencio", "title": "Silencio", "text": "No dices nada. La otra persona habla más. No gasta turno." },
+    { "id": "presion", "type": "presion", "title": "Presión", "text": "Aprietas. Rompe un muro de golpe, pero baja la Confianza." },
+    { "id": "revelar", "type": "revelar", "title": "Revelar", "text": "Dejas ver el Umbral. Convence o aterra, según la persona." },
+    { "id": "conocimiento", "type": "conocimiento", "title": "Conocimiento", "text": "Algo que aprendiste en otro bucle: «{pista}»." },
+    { "id": "recordar", "type": "recordar", "provisional": true, "title": "Recordar", "text": "Un déjà vu compartido con Akba. Llegará cuando se encuentren." },
+    { "id": "verdad_lina_no_ir", "type": "verdad", "door": "lina_no_ir", "provisional": true, "title": "«Hoy no vayas»", "text": "Le pides que hoy no lleve el pan al taller. Por ti." },
+    { "id": "verdad_lina_masa", "type": "verdad", "door": "", "provisional": true, "title": "«Esa masa no sube»", "text": "Le dices que la masa de hoy está mal. No es verdad, y se nota." },
+    { "id": "verdad_tun_libreta", "type": "verdad", "door": "tun_libreta", "provisional": true, "title": "«Enséñame la libreta»", "text": "Le dices que tú también oíste a Ruth decir «otra vez»." },
+    { "id": "verdad_tun_quedate", "type": "verdad", "door": "tun_quedate", "provisional": true, "title": "«Quédate en casa»", "text": "Le pides que esta noche no vaya a la fiesta." },
+    { "id": "verdad_beto_imprenta", "type": "verdad", "door": "beto_imprenta", "provisional": true, "title": "«Te llama la imprenta»", "text": "Le das un recado: la imprenta lo espera esta noche a las ocho y media." },
+    { "id": "verdad_beto_huir", "type": "verdad", "door": "", "provisional": true, "title": "«Vete de Much»", "text": "Le dices que se vaya de la ciudad. Beto se ríe tan fuerte que mira toda la plaza." },
+    { "id": "verdad_ruth_recuerdas", "type": "verdad", "door": "ruth_fragmentos", "provisional": true, "title": "«Tú también lo recuerdas»", "text": "Le dices que sabes de la línea tachada y que no está loca." },
+    { "id": "verdad_ruth_relojes", "type": "verdad", "door": "", "provisional": true, "title": "«Tus relojes van bien»", "text": "Le dices que sus relojes van en hora. Ruth sabe que no." }
+  ],
+  "conversations": [
+    {
+      "id": "conv_lina",
+      "person": "lina",
+      "label": "Hablar con Lina",
+      "provisional": true,
+      "opening": {
+        "sazil": "¡Sazil! Llegas justo: esta masa necesita público. Tú, quieta, masa, que te estoy mirando.",
+        "akba": "Usted es el del Observatorio. ¿Duerme algo? Siéntese, que la masa no muerde."
+      },
+      "fear": "Usted otra vez. No sé por qué, pero me tiemblan las manos. Hable desde ahí.",
+      "wrong": "¿Cómo que no? Mira, ya me pusiste de mal humor, y la masa lo nota.",
+      "nothing": "Ya te lo he contado todo. Bueno, casi todo.",
+      "silence_end": "Yo también sé callar, ¿eh? Mira la masa, que esa sí que habla.",
+      "neutral": "Otro rato, ¿eh? Que a las tres me espera el taller.",
+      "closed": "Hoy no. Vete, que se me corta la masa.",
+      "presion": "¡Ay! ¿Y eso a qué viene? Está bien, está bien: es por Ruth.",
+      "revelar": { "effect": "open", "door": "lina_no_ir", "text": "Esa luz... la he visto antes. Vale. Hoy no voy. Pero no me mire así." },
+      "trust": { "actor": "sazil", "min": 3, "set": [ "lina_confia" ] },
+      "elements": [
+        { "id": "lina_muro_ruth", "kind": "wall", "clue": "clave_lina_ruth", "reveal": "Si no llevo el pan, Ruth no come. Y está tan sola con sus relojes..." },
+        {
+          "id": "lina_no_ir",
+          "kind": "door",
+          "clue": "clave_lina_por_ti",
+          "walls": [ "lina_muro_ruth" ],
+          "if": { "ANY": [ { "clue": "hecho_fisura_patio" }, { "clue": "hecho_lina_desaparece" } ] },
+          "reveal": "Si me lo pidiera alguien de confianza... igual hoy no iba al taller.",
+          "open": "Bueno. Por ti. Se lo llevo mañana. Aunque mañana, no sé por qué, me suena raro.",
+          "effects": { "set": [ "lina_no_ira" ] }
+        },
+        {
+          "id": "lina_infancia",
+          "kind": "door",
+          "clue": "clave_lina_infancia",
+          "walls": [],
+          "reveal": "Hay cosas de cuando era niña que no le cuento a nadie. Nadie me creería.",
+          "open": "De niña vi a alguien caer por una grieta de luz, y ya no volvió. Nunca lo conté. ¿Tú también la has visto?",
+          "effects": { "clues": [ "secreto_lina_nina" ] }
+        }
+      ],
+      "silence": [
+        { "text": "Quien me carga la canasta tiene mi voto, ¿eh? Lo digo por nada.", "clues": [ "clave_canasta" ] },
+        { "text": "A las tres llevo el pan a la relojería. Como siempre. Tú, masa, no me mires así.", "clues": [ "horario_lina_pan" ] }
+      ],
+      "decks": {
+        "sazil": [ "escuchar", "verdad_lina_no_ir", "silencio", "escuchar", "verdad_lina_masa" ],
+        "akba": [ "presion", "revelar", "silencio", "escuchar", "silencio", "presion", "revelar" ]
+      }
+    },
+    {
+      "id": "conv_tun",
+      "person": "tun",
+      "label": "Hablar con Tun",
+      "provisional": true,
+      "opening": {
+        "sazil": "¡Sazil! Anoto: visita de mi persona favorita con bolsa. ¿Qué pasa? Tienes cara de pregunta.",
+        "akba": "¿Usted es el vigilante del Observatorio? Espere, que lo apunto: nombre, hora, cara de sueño..."
+      },
+      "fear": "Usted... Lo tengo apuntado: me dio miedo. Hable rápido, que tiemblo y no me sale la letra.",
+      "wrong": "Eso no lo tengo apuntado. ¿Seguro? Me estás liando.",
+      "nothing": "Ya está todo en la libreta. Página tres, abajo.",
+      "silence_end": "...Perdona, estaba apuntando tu silencio. Queda bonito.",
+      "neutral": "Otro rato. Anoto: conversación a medias. Con asterisco.",
+      "closed": "No, no, no. Cierro la libreta. Y la boca.",
+      "presion": "¡Vale, vale! Lo apunto todo para no olvidarlo, ¿contento?",
+      "revelar": { "effect": "terrify", "amount": -3, "text": "¿Qué es eso? ¡¿Qué es eso?! No puedo apuntarlo. No me salen las letras." },
+      "elements": [
+        { "id": "tun_muro_olvido", "kind": "wall", "clue": "clave_tun_olvido", "reveal": "Si no lo apunto, se me olvida. Y si se me olvida a mí, ¿quién se acuerda?" },
+        {
+          "id": "tun_libreta",
+          "kind": "door",
+          "clue": "clave_tun_libreta",
+          "walls": [ "tun_muro_olvido" ],
+          "if": { "clue": "hecho_ruth_otra_vez" },
+          "reveal": "La libreta solo se la enseño a quien sabe de qué va. ¿Tú sabes de qué va?",
+          "open": "¿Lo de «otra vez»? Mira: siete veces hoy, todas a la misma hora. Como si Ruth leyera un guion que nadie le dio.",
+          "effects": { "clues": [ "secreto_libreta_tun" ] }
+        },
+        {
+          "id": "tun_quedate",
+          "kind": "door",
+          "clue": "clave_tun_plaza",
+          "walls": [ "tun_muro_olvido" ],
+          "if": { "ALL": [ { "clue": "hecho_tun_herido" }, { "time_to": "21:30" } ] },
+          "reveal": "Esta noche hay fiesta en la plaza. Si alguien me lo pidiera de verdad... igual me quedaba.",
+          "open": "Vale. Me quedo en casa. Pero lo apunto como deuda. Con intereses.",
+          "effects": { "set": [ "tun_se_queda" ] }
+        }
+      ],
+      "silence": [
+        { "text": "A las ocho me voy a la fiesta de la plaza. Hay farolillos y Beto grita gratis.", "clues": [ "horario_tun_plaza" ] },
+        { "text": "A las doce llevé una caja al Observatorio. Pesaba como un secreto. No la abrí. Bueno, un poco.", "clues": [ "horario_tun_caja" ] }
+      ],
+      "decks": {
+        "sazil": [ "escuchar", "verdad_tun_libreta", "silencio", "verdad_tun_quedate", "escuchar" ],
+        "akba": [ "silencio", "escuchar", "presion", "revelar", "silencio", "presion", "revelar" ]
+      }
+    },
+    {
+      "id": "conv_beto",
+      "person": "beto",
+      "label": "Hablar con Beto",
+      "provisional": true,
+      "opening": {
+        "sazil": "¡EXTRA, EXTRA! Cartera se detiene a charlar. Fuentes cercanas: yo.",
+        "akba": "¡EXTRA! Vigilante sale de día. Los murciélagos, indignados."
+      },
+      "fear": "EXTRA: vendedor tiembla. Fuentes cercanas: sus rodillas. ¿Qué quiere ahora?",
+      "wrong": "¡EXTRA: rumor falso! Fe de erratas: a mí no me la cuelas.",
+      "nothing": "Se me acabaron los titulares. Primera vez en la historia. Apúntalo.",
+      "silence_end": "EXTRA: silencio incómodo en la plaza. Se busca tema de conversación.",
+      "neutral": "Otro rato, que hay que vender. EXTRA: conversación aplazada.",
+      "closed": "Cierro el kiosco. Hoy no hay más ediciones para usted.",
+      "presion": "¡Vale! EXTRA: vendedor confiesa. Lo escribo antes de que pase. Siempre antes.",
+      "revelar": { "effect": "confianza", "amount": 2, "text": "¡EXTRA, EXTRA! ¡Luz de todos los colores en plena plaza! Por fin una exclusiva de verdad." },
+      "elements": [
+        { "id": "beto_muro_broma", "kind": "wall", "clue": "clave_beto_broma", "reveal": "Si no lo convierto en chiste, da miedo. Mis titulares... a veces pasan." },
+        {
+          "id": "beto_imprenta",
+          "kind": "door",
+          "clue": "clave_imprenta",
+          "walls": [ "beto_muro_broma" ],
+          "if": { "ALL": [ { "ANY": [ { "clue": "hecho_marcos_sospecha" }, { "clue": "hecho_marcos_va_por_beto" } ] }, { "time_to": "21:30" } ] },
+          "reveal": "Me vienen solos, como el hipo. Luego la imprenta los pone bonitos. Si la imprenta me llama, dejo hasta la gorra.",
+          "open": "¿La imprenta? ¿Esta noche? ¡EXTRA! ¡Vendedor abandona la plaza por amor al plomo! Gracias. Hoy tenía un titular feo para mí.",
+          "effects": { "set": [ "beto_avisado" ], "clues": [ "secreto_beto_titulares" ] }
+        }
+      ],
+      "silence": [
+        { "text": "¡EXTRA! ¡El patio de la relojería se traga a una panadera a las tres! Tranquilidad: es ficción. Casi siempre.", "clues": [ "rumor_titular_panadera" ] },
+        { "if": { "time_from": "14:30" }, "text": "EXTRA: capitán con farol busca a quien huele a tormenta. Yo huelo a tinta, por si acaso.", "clues": [ "rumor_cazadores", "hecho_llegada_marcos" ] }
+      ],
+      "decks": {
+        "sazil": [ "escuchar", "escuchar", "verdad_beto_imprenta", "silencio", "verdad_beto_huir" ],
+        "akba": [ "silencio", "revelar", "escuchar", "presion", "silencio", "presion", "revelar" ]
+      }
+    },
+    {
+      "id": "conv_ruth",
+      "person": "ruth",
+      "label": "Hablar con Ruth",
+      "provisional": true,
+      "opening": {
+        "sazil": "Sazil. Las dos y diez, como siempre. ¿Qué necesitas?",
+        "akba": "Usted no tiene cara de traerme un reloj. Dígame, que se me atrasa la tarde."
+      },
+      "fear": "Usted. Otra vez. Hable y váyase, que me tiemblan los engranajes.",
+      "wrong": "No. Eso no es así. Los relojes no mienten; las personas, sí.",
+      "nothing": "No tengo nada más que decir. Otra vez.",
+      "silence_end": "...Tic. Tac. ¿Ve? Hasta el silencio va con retraso.",
+      "neutral": "Otro rato. Tengo que cerrar a las tres y media.",
+      "closed": "Basta. La relojería está cerrada para usted.",
+      "presion": "No me apriete. Está bien: me da miedo lo que recuerdo.",
+      "revelar": { "effect": "open", "door": "ruth_fragmentos", "text": "Esa luz... la conozco desde hace cincuenta y dos años. Está bien. Le diré lo que recuerdo." },
+      "elements": [
+        { "id": "ruth_muro_loca", "kind": "wall", "clue": "clave_ruth_miedo", "reveal": "Si dijera lo que me pasa por la cabeza, pensarían que estoy loca. Una relojera loca. Qué poco original." },
+        {
+          "id": "ruth_fragmentos",
+          "kind": "door",
+          "clue": "clave_ruth_recuerda",
+          "walls": [ "ruth_muro_loca" ],
+          "if": { "clue": "secreto_pedido_tachado" },
+          "reveal": "Hay cosas que solo le contaría a quien ya hubiera leído lo que tacho.",
+          "open": "Recuerdo trozos. Que hoy ya pasó. Que alguien no vuelve del patio. Por eso escribo «no vengas tú» y lo tacho. Otra vez.",
+          "effects": { "clues": [ "secreto_ruth_fragmentos" ] }
+        }
+      ],
+      "silence": [
+        { "text": "Otra vez. ¿Dije algo? Los relojes, que se atrasan.", "clues": [ "hecho_ruth_otra_vez" ] },
+        { "text": "El patio se cierra a partir de las tres. Siempre. No pregunte por qué, que no lo sé.", "clues": [ "rumor_patio_tres" ] }
+      ],
+      "decks": {
+        "sazil": [ "escuchar", "silencio", "verdad_ruth_recuerdas", "escuchar", "verdad_ruth_relojes" ],
+        "akba": [ "silencio", "presion", "revelar", "silencio", "escuchar", "presion", "revelar" ]
+      }
+    }
+  ]
+}

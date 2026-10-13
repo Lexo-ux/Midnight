@@ -6,8 +6,9 @@ extends Node
 ## - Del bucle (se reinicia a medianoche): todo lo de `sim.s` (hora, a quién
 ##   controlas, posiciones, banderas, cartas, Rastro, Desgaste, ruta grabada y
 ##   la estación de cada protagonista en cada lugar).
-## - Permanente: el Cuaderno del Umbral, el Velo de cada persona, los finales
-##   vistos, las pistas pedidas, los ajustes y la ruta del bucle anterior.
+## - Permanente: el Cuaderno del Umbral, el Velo de cada persona (y las marcas
+##   de Akba), los finales vistos, las pistas pedidas, los ajustes y la ruta
+##   del bucle anterior.
 
 ## Cualquier cambio: la UI se redibuja.
 signal changed
@@ -19,6 +20,7 @@ const GameData := preload("res://scripts/game_data.gd")
 const Simulation := preload("res://scripts/simulation.gd")
 const SaveManager := preload("res://scripts/save_manager.gd")
 const SceneRules := preload("res://scripts/scene_rules.gd")
+const Conversation := preload("res://scripts/conversation.gd")
 
 const DEFAULT_SAVE_PATH: String = "user://savegame.json"
 
@@ -31,13 +33,16 @@ var load_save_on_ready: bool = true
 var loop_number: int = 1
 ## id de pista -> {loop, by, time}. Compartido con la simulación.
 var cuaderno: Dictionary = {}
-## id de persona -> nivel de Velo (0 silueta, 1 rasgos; 2 y 3 llegan con las conversaciones).
+## id de persona -> nivel de Velo ganado (0 silueta, 1 rasgos, 2 rostro, 3 retrato).
 var velo: Dictionary = {}
+## id de persona -> {count, loop}: veces que Akba la forzó. Cada marca baja un
+## nivel de Velo para siempre; en el bucle siguiente recibe con miedo.
+var marks: Dictionary = {}
 ## id de final -> bucle en que se vio por primera vez.
 var endings_seen: Dictionary = {}
 ## id de pregunta -> cuántos niveles de pista se han pedido (0-3).
 var hints: Dictionary = {}
-var settings: Dictionary = {"reduced_motion": false, "text_size": 1}
+var settings: Dictionary = SaveManager.DEFAULT_SETTINGS.duplicate()
 ## Acciones del bucle anterior, para «Repetir mi ruta».
 var last_route: Array = []
 
@@ -47,6 +52,8 @@ func _ready() -> void:
 		return
 	sim = Simulation.new(data)
 	sim.cuaderno = cuaderno
+	sim.velo = velo
+	sim.marks = marks
 	if load_save_on_ready:
 		var snapshot := SaveManager.read(save_path, data)
 		if not snapshot.is_empty():
@@ -61,6 +68,7 @@ func new_game() -> void:
 	loop_number = 1
 	cuaderno.clear()
 	velo.clear()
+	marks.clear()
 	endings_seen.clear()
 	hints.clear()
 	last_route = []
@@ -148,20 +156,41 @@ func can_replay() -> bool:
 
 
 ## Repite las acciones del bucle anterior anteriores a `minute`. La simulación
-## es determinista, así que reproduce el mismo bucle.
+## es determinista, así que reproduce el mismo bucle, salvo en lo que cambie lo
+## aprendido: en una conversación, el Cuaderno puede descubrir muros o dar
+## cartas de Conocimiento, y entonces se juegan las cartas grabadas mientras
+## valgan (ver _replayable()).
 func replay_route(minute: int) -> bool:
 	if not can_replay() or minute <= data.loop_start:
 		return false
 	for entry: Dictionary in last_route:
 		if entry["t"] >= minute or is_loop_over():
 			break
-		var ok: bool = sim.switch_to(entry["switch"]) if entry.has("switch") else sim.step(entry["command"])
+		var ok: bool = sim.switch_to(entry["switch"]) if entry.has("switch") else sim.step(_replayable(entry["command"]))
 		if not ok:
 			push_warning("GameState.replay_route: la ruta se separó en %s." % GameData.format_time(entry["t"]))
 			break
 	sim.s["outcome"] = {"lines": [], "clues": []}
 	_after_change()
 	return true
+
+
+## Una orden grabada, lista para repetirla ahora. Una conversación juega sus
+## cartas mientras valgan (hasta que termine o una ya no esté en la mano); si no
+## vale ninguna, se queda en esperar allí: mismo tiempo y mismo lugar.
+func _replayable(command: Dictionary) -> Dictionary:
+	if command.get("verb", "") != "hablar" or not data.conversations.has(command.get("id", "")):
+		return command
+	var actor := active_actor()
+	var conv := Conversation.start(data, command["id"], actor, sim.conversation_context(actor, command["target"]))
+	for card: Variant in command.get("cards", []):
+		if conv["result"] != "" or not card is String or not Conversation.play(data, conv, card):
+			break
+	if conv["played"].is_empty():
+		return {"verb": "esperar", "place": command["place"], "target": "", "id": ""}
+	var replay: Dictionary = command.duplicate()
+	replay["cards"] = conv["played"].duplicate()
+	return replay
 
 
 ## Pide el siguiente nivel de pista de una pregunta. No toca la simulación.
@@ -173,15 +202,101 @@ func reveal_hint(question_id: String) -> int:
 
 
 func set_reduced_motion(enabled: bool) -> void:
-	settings["reduced_motion"] = enabled
-	settings_changed.emit()
-	_autosave()
+	_set_setting("reduced_motion", enabled)
 
 
 func set_text_size(index: int) -> void:
-	settings["text_size"] = clampi(index, 0, data.text_sizes.size() - 1)
-	settings_changed.emit()
-	_autosave()
+	_set_setting("text_size", clampi(index, 0, data.text_sizes.size() - 1))
+
+
+## `key`: uno de SaveManager.VOLUME_KEYS. `value` de 0 a 1.
+func set_volume(key: String, value: float) -> void:
+	if SaveManager.VOLUME_KEYS.has(key):
+		_set_setting(key, clampf(value, 0.0, 1.0))
+
+
+func set_mute(muted: bool) -> void:
+	_set_setting("mute", muted)
+
+
+func set_haptics(level: String) -> void:
+	if SaveManager.HAPTIC_LEVELS.has(level):
+		_set_setting("haptics", level)
+
+
+## Modo de los quiebres: "hold" (mantener pulsado) o "toggle" (tocar para empezar y para soltar).
+func set_breakpoint_mode(mode: String) -> void:
+	if SaveManager.BREAKPOINT_MODES.has(mode):
+		_set_setting("breakpoint_mode", mode)
+
+
+## Tiempo de los quiebres: "20", "40" (segundos) o "none" (sin tiempo).
+func set_breakpoint_time(time: String) -> void:
+	if SaveManager.BREAKPOINT_TIMES.has(time):
+		_set_setting("breakpoint_time", time)
+
+
+func set_breakpoint_chosen(chosen: bool) -> void:
+	_set_setting("breakpoint_chosen", chosen)
+
+
+func set_tips_seen(seen: bool) -> void:
+	_set_setting("tips_seen", seen)
+
+
+## «¿Qué hago?»: pide el siguiente nivel de pista de la primera pregunta
+## abierta que aún tenga pistas. Devuelve su id ("" si no queda ninguna).
+func next_hint() -> String:
+	for item: Dictionary in get_questions():
+		if not item["resolved"] and item["hint_level"] < 3:
+			reveal_hint(item["question"]["id"])
+			return item["question"]["id"]
+	return ""
+
+
+# --- Conversaciones y quiebres --------------------------------------------
+
+## Empieza (solo en la UI, sin tocar la partida) una conversación con `person`
+## para el protagonista activo. La partida cambia al confirmarla con commit_conversation().
+func start_conversation(person: String) -> Dictionary:
+	var actor := active_actor()
+	return Conversation.start(data, data.conversation_by_person[person], actor, sim.conversation_context(actor, person))
+
+
+## Juega una carta en una conversación empezada con start_conversation().
+func play_card(conv: Dictionary, card: String) -> bool:
+	return Conversation.play(data, conv, card)
+
+
+## Terminar a mitad («otro rato»), antes de confirmarla.
+func finish_conversation(conv: Dictionary) -> void:
+	Conversation.finish(data, conv)
+
+
+## La conversación cuenta como una acción «hablar» (30 minutos) con sus cartas.
+## Sin cartas jugadas no hay acción: se abandona gratis.
+func commit_conversation(conv: Dictionary) -> bool:
+	if conv["played"].is_empty():
+		return false
+	var person: String = conv["person"]
+	return perform({"verb": "hablar", "place": position_of(person), "target": person, "id": conv["conversation"],
+			"cards": conv["played"].duplicate()})
+
+
+## Las acciones de quiebre del protagonista activo ahora ([] si no hay).
+func breakpoint_actions() -> Array[Dictionary]:
+	var found: Array[Dictionary] = []
+	for action: Dictionary in get_actions():
+		if action["verb"] == "interactuar" and data.breakpoint_by_interaction.has(action["id"]):
+			found.append(action)
+	return found
+
+
+## El quiebre se decide: "sostuvo" hace la interacción; "soltó" deja que pase lo de siempre.
+func resolve_breakpoint(action: Dictionary, decision: String) -> bool:
+	var command: Dictionary = action.duplicate()
+	command["decision"] = decision
+	return perform(command)
 
 
 # --- Consultas ------------------------------------------------------------
@@ -246,8 +361,9 @@ func has_clue(id: String) -> bool:
 	return cuaderno.has(id)
 
 
+## Nivel de Velo que se ve: el ganado menos una marca por cada vez que Akba la forzó.
 func velo_level(person: String) -> int:
-	return velo.get(person, 0)
+	return maxi(0, velo.get(person, 0) - marks.get(person, {}).get("count", 0))
 
 
 ## Estación de `actor` en `place` ("" si aún no ha hecho nada allí en este bucle).
@@ -343,6 +459,7 @@ func export_snapshot() -> Dictionary:
 		"loop_number": loop_number,
 		"cuaderno": cuaderno.duplicate(true),
 		"velo": velo.duplicate(),
+		"marks": marks.duplicate(true),
 		"endings_seen": endings_seen.duplicate(),
 		"hints": hints.duplicate(),
 		"settings": settings.duplicate(),
@@ -356,7 +473,10 @@ func import_snapshot(snapshot: Dictionary) -> void:
 	loop_number = snapshot["loop_number"]
 	cuaderno.clear()
 	cuaderno.merge(snapshot["cuaderno"].duplicate(true))
-	velo = snapshot["velo"].duplicate()
+	velo.clear()
+	velo.merge(snapshot["velo"])
+	marks.clear()
+	marks.merge(snapshot["marks"].duplicate(true))
 	endings_seen = snapshot["endings_seen"].duplicate()
 	hints = snapshot["hints"].duplicate()
 	settings = snapshot["settings"].duplicate()
@@ -389,6 +509,12 @@ func _update_velo() -> void:
 				break
 		if complete:
 			velo[id] = 1
+
+
+func _set_setting(key: String, value: Variant) -> void:
+	settings[key] = value
+	settings_changed.emit()
+	_autosave()
 
 
 ## Condiciones que solo miran el Cuaderno (preguntas abiertas).
