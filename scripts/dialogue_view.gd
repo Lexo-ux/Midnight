@@ -1,8 +1,11 @@
 extends Control
-## Diálogo del último paso: una línea cada vez, con la silueta y el nombre de
+## Diálogo del último paso: una línea cada vez, con la cara (según el Velo:
+## silueta, rostro o retrato; los protagonistas, su retrato) y el nombre de
 ## quien habla. Al final, lo nuevo en el Cuaderno. Cerrarlo no cuesta tiempo.
 
-@onready var _silhouette: Control = %SpeakerSilhouette
+const ArtLibrary := preload("res://scripts/art_library.gd")
+
+@onready var _portrait: Control = %SpeakerPortrait
 @onready var _speaker: Label = %Speaker
 @onready var _line: Label = %Line
 @onready var _clues: Label = %NewClues
@@ -11,10 +14,15 @@ extends Control
 var _index: int = 0
 ## Qué diálogo se está mostrando, para empezar de nuevo si llega otro.
 var _shown: String = ""
+var _art: ArtLibrary
 
 
 func _ready() -> void:
 	_next.pressed.connect(_on_next)
+
+
+func bind(art: ArtLibrary) -> void:
+	_art = art
 
 
 ## Muestra el diálogo pendiente (desde la primera línea si es nuevo) o se oculta.
@@ -43,11 +51,11 @@ func _render() -> void:
 	if lines.is_empty():
 		_speaker.text = data.text("dialogo_nuevo")
 		_line.text = ""
-		_silhouette.hide()
+		_portrait.hide()
 	else:
 		var line: Dictionary = lines[_index]
-		_silhouette.show()
-		_silhouette.show_person(data, line["speaker"], GameState.velo_level(line["speaker"]))
+		_portrait.show()
+		_portrait.show_person(data, _art, line["speaker"], GameState.velo_level(line["speaker"]))
 		_speaker.text = data.people[line["speaker"]]["name"]
 		_line.text = line["text"]
 	_clues.visible = last and not clues.is_empty()

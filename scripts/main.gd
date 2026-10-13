@@ -4,9 +4,16 @@ extends Control
 ## acciones y se redibuja cuando cambia. Solo guarda estado visual: qué lugar se
 ## mira desde el mapa, a quién se ha elegido y la animación del relevo.
 ##
-## Arriba: hora, bucle, Ajustes, y Mapa, Cuaderno y Herramientas. En medio: la
-## escena. Abajo, al alcance del pulgar: lo que se puede hacer allí y el
-## selector Sazil/Akba con sus retratos.
+## Arriba: hora, bucle, «¿Qué hago?», Ajustes, y Mapa, Cuaderno y Herramientas.
+## En medio: la escena. Abajo, al alcance del pulgar: lo que se puede hacer allí
+## y el selector Sazil/Akba con sus retratos.
+##
+## Encima, sin cambiar de escena: conversaciones con cartas, momentos de
+## quiebre (se abren solos al llegar el momento si el protagonista está allí),
+## consejos de la primera partida y los paneles de siempre. El botón «atrás» de
+## Android cierra el de más arriba (y en una conversación con cartas jugadas
+## pregunta antes); sin nada abierto abre Ajustes: nunca sale del juego.
+## También manda sonido (AudioDirector) y vibración (Haptics).
 
 const GameData := preload("res://scripts/game_data.gd")
 const ArtLibrary := preload("res://scripts/art_library.gd")
@@ -17,6 +24,9 @@ const SWEEP_SECONDS: float = 0.22
 const SWEEP_WIDTH_RATIO: float = 0.45
 const SWEEP_ALPHA: float = 0.45
 const BUTTON_MIN_HEIGHT: int = 120
+## Margen de los paneles de arriba y abajo sin zona segura (el del tema).
+const TOP_MARGIN: float = 48.0
+const BOTTOM_MARGIN: float = 24.0
 
 @onready var _place_view: Control = %PlaceView
 @onready var _hands: Control = %Hands
@@ -29,6 +39,9 @@ const BUTTON_MIN_HEIGHT: int = 120
 @onready var _notebook_button: Button = %NotebookButton
 @onready var _tools_button: Button = %ToolsButton
 @onready var _settings_button: Button = %SettingsButton
+@onready var _what_now_button: Button = %WhatNowButton
+@onready var _top: PanelContainer = $Top
+@onready var _bottom: PanelContainer = $Bottom
 @onready var _description: Label = %Description
 @onready var _people: HBoxContainer = %People
 @onready var _people_scroll: ScrollContainer = %PeopleScroll
@@ -41,6 +54,9 @@ const BUTTON_MIN_HEIGHT: int = 120
 @onready var _tools: Control = %ToolsView
 @onready var _settings: Control = %SettingsView
 @onready var _loop_end: Control = %LoopEndView
+@onready var _conversation: Control = %ConversationView
+@onready var _breakpoint: Control = %BreakpointView
+@onready var _tips: Control = %TipsView
 
 var _art: ArtLibrary = ArtLibrary.new()
 var _switch_buttons: Dictionary[String, Button] = {}
@@ -52,6 +68,8 @@ var _selected: String = ""
 var _route_key: String = ""
 var _sweep_tween: Tween
 var _refresh_queued: bool = false
+## Quiebres que ya se abrieron solos ("bucle|hora|interacción"): no se insiste.
+var _breakpoints_offered: Dictionary = {}
 
 
 func _ready() -> void:
@@ -64,6 +82,10 @@ func _ready() -> void:
 	_place_view.hotspot_tapped.connect(func(id: String) -> void: GameState.perform_hotspot(id))
 	_place_view.person_tapped.connect(_select_person)
 	_hands.bind(_art)
+	_conversation.bind(_art)
+	_breakpoint.bind(_art)
+	_notebook.bind(_art)
+	_dialogue.bind(_art)
 	_map.bind(GameState)
 	_map.place_chosen.connect(_preview_place)
 	for actor: String in data.protagonist_ids:
@@ -77,6 +99,11 @@ func _ready() -> void:
 	_tools_button.text = data.text("boton_herramientas")
 	_settings_button.text = data.text("boton_ajustes")
 	_back_button.text = data.text("escena_volver")
+	_what_now_button.text = data.text("que_hago")
+	_what_now_button.pressed.connect(func() -> void: _notebook.what_now())
+	_settings.tips_requested.connect(func() -> void: _tips.open())
+	_conversation.closed.connect(_queue_refresh)
+	_breakpoint.closed.connect(_queue_refresh)
 	_map_button.pressed.connect(func() -> void: _map.open())
 	_notebook_button.pressed.connect(func() -> void: _notebook.open())
 	_tools_button.pressed.connect(func() -> void: _tools.open())
@@ -86,8 +113,13 @@ func _ready() -> void:
 	GameState.changed.connect(_queue_refresh)
 	GameState.switched.connect(_play_sweep)
 	GameState.settings_changed.connect(_on_settings_changed)
+	resized.connect(_apply_safe_area)
 	_apply_text_size()
+	_apply_feedback_settings()
+	_apply_safe_area()
 	_refresh()
+	if not GameState.settings["tips_seen"]:
+		_tips.open()
 
 
 func _queue_refresh() -> void:
@@ -123,6 +155,8 @@ func _refresh() -> void:
 	_refresh_actions(place, here, actions)
 	_dialogue.sync()
 	_loop_end.sync(_dialogue.has_pending())
+	AudioDirector.set_scene_sound(data.is_night(GameState.current_time()), _near_fissure(here))
+	_offer_breakpoint.call_deferred()
 
 
 func _refresh_caption(place: String, preview: bool) -> void:
@@ -214,8 +248,20 @@ func _refresh_actions(place: String, here: String, actions: Array[Dictionary]) -
 		button.text = _action_label(action, here)
 		button.custom_minimum_size = Vector2(0, BUTTON_MIN_HEIGHT)
 		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		button.pressed.connect(func() -> void: GameState.perform(action))
+		button.pressed.connect(_do_action.bind(action))
 		_actions.add_child(button)
+
+
+## Una acción: las conversaciones con cartas y los quiebres abren su pantalla;
+## el resto se hace ya.
+func _do_action(action: Dictionary) -> void:
+	var data := GameState.data
+	if action["verb"] == "hablar" and data.conversations.has(action["id"]):
+		_conversation.open(action["target"])
+	elif action["verb"] == "interactuar" and data.breakpoint_by_interaction.has(action["id"]):
+		_breakpoint.open(action)
+	else:
+		GameState.perform(action)
 
 
 func _chip(text: String, active: bool, on_pressed: Callable) -> Button:
@@ -241,10 +287,13 @@ func _action_label(action: Dictionary, here: String) -> String:
 		"seguir":
 			return data.text("accion_seguir").format(values)
 		"hablar":
-			values["tema"] = data.talks[action["id"]]["label"]
+			var talk: Dictionary = data.conversations[action["id"]] if data.conversations.has(action["id"]) else data.talks[action["id"]]
+			values["tema"] = talk["label"]
 			return data.text("accion_hablar").format(values)
 		"interactuar":
 			var interaction: Dictionary = data.interactions[action["id"]]
+			if data.breakpoint_by_interaction.has(action["id"]):
+				return data.text("accion_quiebre").format({"texto": interaction["label"]})
 			return data.text("accion_" + interaction["verb"]).format({"texto": interaction["label"]})
 		_:
 			values["carta"] = data.letters[action["id"]]["label"]
@@ -268,6 +317,8 @@ func _preview_place(place: String) -> void:
 ## cambia muy rápido, el barrido anterior se corta y empieza otro. Con
 ## movimiento reducido no hay barrido.
 func _play_sweep(actor: String) -> void:
+	AudioDirector.play_event("switch_" + actor)
+	Haptics.play("switch")
 	if _sweep_tween != null and _sweep_tween.is_valid():
 		_sweep_tween.kill()
 	if GameState.settings["reduced_motion"]:
@@ -289,7 +340,102 @@ func _play_sweep(actor: String) -> void:
 
 func _on_settings_changed() -> void:
 	_apply_text_size()
+	_apply_feedback_settings()
 	_queue_refresh()
+
+
+func _apply_feedback_settings() -> void:
+	AudioDirector.apply_settings(GameState.settings)
+	Haptics.set_level(GameState.settings["haptics"])
+
+
+## Un quiebre se abre solo cuando llega su momento y el protagonista activo está
+## allí (y nada más está abierto). Una vez por bucle, hora e interacción; si se
+## cierra con «Ahora no», sigue en la lista de acciones.
+func _offer_breakpoint() -> void:
+	if _overlay_open() or GameState.is_loop_over():
+		return
+	var data := GameState.data
+	var here := GameState.position_of(GameState.active_actor())
+	for action: Dictionary in GameState.breakpoint_actions():
+		if data.breakpoints[data.breakpoint_by_interaction[action["id"]]]["place"] != here:
+			continue
+		var key := "%d|%d|%s" % [GameState.loop_number, GameState.current_time(), action["id"]]
+		if _breakpoints_offered.has(key):
+			continue
+		_breakpoints_offered[key] = true
+		_breakpoint.open(action)
+		return
+
+
+## Hay una fisura en este lugar a esta hora (el tic-tac del Reloj se desajusta).
+func _near_fissure(place: String) -> bool:
+	var data := GameState.data
+	var t := GameState.current_time()
+	for id: String in data.hotspots:
+		var hotspot: Dictionary = data.hotspots[id]
+		if hotspot["fissure"] and hotspot["place"] == place and t >= hotspot["from"] and t < hotspot["to"]:
+			return true
+	return false
+
+
+func _overlay_open() -> bool:
+	for overlay: Control in [_conversation, _breakpoint, _tips, _settings, _tools, _notebook, _map, _dialogue, _loop_end]:
+		if overlay.visible:
+			return true
+	return false
+
+
+## Botón «atrás» de Android (y Escape en escritorio): cierra lo de más arriba.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		go_back()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		go_back()
+		get_viewport().set_input_as_handled()
+
+
+func go_back() -> void:
+	if _tips.visible:
+		_tips.close()
+	elif _conversation.visible:
+		_conversation.back()
+	elif _breakpoint.visible:
+		_breakpoint.back()
+	elif _settings.visible:
+		_settings.hide()
+	elif _tools.visible:
+		_tools.hide()
+	elif _notebook.visible:
+		_notebook.hide()
+	elif _map.visible:
+		_map.hide()
+	elif _view_place != "":
+		_preview_place("")
+	elif not _dialogue.visible and not _loop_end.visible:
+		_settings.open()
+
+
+## Zona segura (muescas, barra de gestos): los paneles de arriba y abajo se apartan.
+func _apply_safe_area() -> void:
+	var window := DisplayServer.window_get_size()
+	var safe := DisplayServer.get_display_safe_area()
+	if window.x <= 0 or window.y <= 0 or safe.size.x <= 0 or safe.size.y <= 0:
+		return
+	var scale_y := size.y / float(window.y)
+	var top_inset := maxf(0.0, safe.position.y * scale_y)
+	var bottom_inset := maxf(0.0, (window.y - safe.end.y) * scale_y)
+	_top.add_theme_stylebox_override("panel", _panel_with_margin(_top, "content_margin_top", TOP_MARGIN + top_inset))
+	_bottom.add_theme_stylebox_override("panel", _panel_with_margin(_bottom, "content_margin_bottom", BOTTOM_MARGIN + bottom_inset))
+
+
+func _panel_with_margin(panel: PanelContainer, property: String, value: float) -> StyleBox:
+	var style: StyleBox = panel.get_theme_stylebox("panel").duplicate()
+	style.set(property, value)
+	return style
 
 
 func _apply_text_size() -> void:

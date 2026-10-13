@@ -12,69 +12,130 @@ grow_vertical = 2
 theme_type_variation = &"Paper"
 script = ExtResource("1_script")
 
-[node name="Box" type="VBoxContainer" parent="."]
+[node name="Scroll" type="ScrollContainer" parent="."]
 layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="Box" type="VBoxContainer" parent="Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 28
 
-[node name="Title" type="Label" parent="Box"]
+[node name="Title" type="Label" parent="Scroll/Box"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"PaperTitle"
 horizontal_alignment = 1
 
-[node name="Motion" type="CheckButton" parent="Box"]
+[node name="Motion" type="CheckButton" parent="Scroll/Box"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 
-[node name="MotionHelp" type="Label" parent="Box"]
+[node name="MotionHelp" type="Label" parent="Scroll/Box"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"PaperLabel"
 autowrap_mode = 3
 
-[node name="TextTitle" type="Label" parent="Box"]
+[node name="TextTitle" type="Label" parent="Scroll/Box"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"PaperTitle"
 
-[node name="Sizes" type="HBoxContainer" parent="Box"]
+[node name="Sizes" type="HBoxContainer" parent="Scroll/Box"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="Spacer" type="Control" parent="Box"]
+[node name="SoundTitle" type="Label" parent="Scroll/Box"]
+unique_name_in_owner = true
 layout_mode = 2
-size_flags_vertical = 3
+theme_type_variation = &"PaperTitle"
 
-[node name="Restart" type="Button" parent="Box"]
+[node name="Volumes" type="VBoxContainer" parent="Scroll/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Mute" type="CheckButton" parent="Scroll/Box"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 
-[node name="Confirm" type="VBoxContainer" parent="Box"]
+[node name="HapticsTitle" type="Label" parent="Scroll/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"PaperTitle"
+
+[node name="HapticLevels" type="HBoxContainer" parent="Scroll/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="BreakTitle" type="Label" parent="Scroll/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"PaperTitle"
+
+[node name="ModeTitle" type="Label" parent="Scroll/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"PaperLabel"
+
+[node name="Modes" type="VBoxContainer" parent="Scroll/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="TimeTitle" type="Label" parent="Scroll/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"PaperLabel"
+
+[node name="Times" type="HBoxContainer" parent="Scroll/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="TipsAgain" type="Button" parent="Scroll/Box"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="Spacer" type="Control" parent="Scroll/Box"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Restart" type="Button" parent="Scroll/Box"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+
+[node name="Confirm" type="VBoxContainer" parent="Scroll/Box"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="ConfirmText" type="Label" parent="Box/Confirm"]
+[node name="ConfirmText" type="Label" parent="Scroll/Box/Confirm"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"PaperLabel"
 autowrap_mode = 3
 
-[node name="ConfirmYes" type="Button" parent="Box/Confirm"]
+[node name="ConfirmYes" type="Button" parent="Scroll/Box/Confirm"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 
-[node name="ConfirmNo" type="Button" parent="Box/Confirm"]
+[node name="ConfirmNo" type="Button" parent="Scroll/Box/Confirm"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 
-[node name="Close" type="Button" parent="Box"]
+[node name="Close" type="Button" parent="Scroll/Box"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 120)
 layout_mode = 2

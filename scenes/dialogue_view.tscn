@@ -1,7 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://scripts/dialogue_view.gd" id="1_script"]
-[ext_resource type="PackedScene" path="res://scenes/silhouette.tscn" id="2_silhouette"]
+[ext_resource type="Script" path="res://scripts/portrait_view.gd" id="2_portrait"]
 
 [node name="DialogueView" type="Control"]
 visible = false
@@ -44,10 +44,11 @@ theme_override_constants/separation = 24
 layout_mode = 2
 theme_override_constants/separation = 24
 
-[node name="SpeakerSilhouette" parent="Sheet/Box/Speaker Row" instance=ExtResource("2_silhouette")]
+[node name="SpeakerPortrait" type="Control" parent="Sheet/Box/Speaker Row"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 200)
 layout_mode = 2
+script = ExtResource("2_portrait")
 
 [node name="Speaker" type="Label" parent="Sheet/Box/Speaker Row"]
 unique_name_in_owner = true
