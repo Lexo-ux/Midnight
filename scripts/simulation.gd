@@ -45,9 +45,41 @@ var key_horizons: Dictionary = {}
 ## Estado del bucle.
 var s: Dictionary = {}
 
+## Índices de los datos (no cambian durante la partida), para que un paso sea
+## barato: el validador simula cientos de miles.
+var _visible_places: Array[String] = []
+var _npcs: Array[String] = []
+## persona -> ids de sus temas; lugar -> ids de sus interacciones.
+var _talks_by_person: Dictionary = {}
+var _interactions_by_place: Dictionary = {}
+## persona -> {override: [tramos], normal: [tramos]}, del más tardío al más
+## temprano (y, a igual hora, el último de la lista primero).
+var _routine_desc: Dictionary = {}
+
 
 func _init(game_data: GameData) -> void:
 	data = game_data
+	_visible_places = data.visible_location_ids()
+	_npcs = data.npc_ids()
+	for id: String in data.talks:
+		var person: String = data.talks[id]["person"]
+		if not _talks_by_person.has(person):
+			_talks_by_person[person] = []
+		_talks_by_person[person].append(id)
+	for id: String in data.interactions:
+		var place: String = data.interactions[id]["place"]
+		if not _interactions_by_place.has(place):
+			_interactions_by_place[place] = []
+		_interactions_by_place[place].append(id)
+	for person: String in data.person_ids:
+		var routine: Array = data.people[person]["routine"]
+		var order: Array = range(routine.size())
+		order.sort_custom(func(a: int, b: int) -> bool:
+			return routine[a]["from"] > routine[b]["from"] or (routine[a]["from"] == routine[b]["from"] and a > b))
+		var groups: Dictionary = {"override": [], "normal": []}
+		for i: int in order:
+			groups["override" if routine[i]["override"] else "normal"].append(routine[i])
+		_routine_desc[person] = groups
 
 
 func begin_loop() -> void:
@@ -113,7 +145,7 @@ func actions_for(actor: String) -> Array[Dictionary]:
 	if actor == "akba" and t < s["exhausted_until"]:
 		actions.append(_action("esperar", here))
 		return actions
-	for place: String in data.visible_location_ids():
+	for place: String in _visible_places:
 		actions.append(_action("esperar", place))
 		actions.append(_action("observar", place))
 		if actor != "akba" and not data.is_open(place, t):
@@ -124,13 +156,13 @@ func actions_for(actor: String) -> Array[Dictionary]:
 			var conversation_id: String = data.conversation_by_person.get(person, "")
 			if conversation_id != "" and not s["conversations"].get(person, {}).get("closed", false):
 				actions.append(_action("hablar", place, person, conversation_id))
-			for talk_id: String in data.talks:
+			for talk_id: String in _talks_by_person.get(person, []):
 				var talk: Dictionary = data.talks[talk_id]
-				if talk["person"] == person and talk["actor"] in [actor, "any"] and check(talk["if"], {"place": place, "actor": actor}):
+				if talk["actor"] in [actor, "any"] and check(talk["if"], {"place": place, "actor": actor}):
 					actions.append(_action("hablar", place, person, talk_id))
-		for id: String in data.interactions:
+		for id: String in _interactions_by_place.get(place, []):
 			var interaction: Dictionary = data.interactions[id]
-			if interaction["place"] == place and interaction["actor"] == actor and _interaction_open(interaction, t) \
+			if interaction["actor"] == actor and _interaction_open(interaction, t) \
 					and _can_afford(interaction) and check(interaction["if"], {"place": place, "actor": actor}):
 				actions.append(_action("interactuar", place, "", id))
 		for letter_id: String in data.letter_ids:
@@ -241,8 +273,8 @@ func step(command: Dictionary) -> bool:
 ## Habitantes (no protagonistas) que están en `place` ahora.
 func people_at(place: String) -> Array[String]:
 	var here: Array[String] = []
-	for id: String in data.person_ids:
-		if not data.is_protagonist(id) and s["positions"].get(id, "") == place:
+	for id: String in _npcs:
+		if s["positions"].get(id, "") == place:
 			here.append(id)
 	return here
 
@@ -278,7 +310,10 @@ func check(condition: Variant, context: Dictionary) -> bool:
 			if not check(item, context):
 				return false
 		return true
-	var key: String = condition.keys()[0]
+	var key: String = ""
+	for name: String in condition:
+		key = name
+		break
 	var value: Variant = condition[key]
 	match key:
 		"ALL":
@@ -343,15 +378,11 @@ func exploration_key() -> String:
 		if key_horizons.get("trail:" + key, data.day_end) >= t:
 			trail.append(key)
 	trail.sort()
-	# De las conversaciones solo cambian el futuro las puertas ya abiertas (la
-	# Confianza que queda solo importa para otra puerta de la misma persona).
-	var talks: Array = []
-	for person: String in s["conversations"]:
-		var state: Dictionary = s["conversations"][person]
-		if not state["won"].is_empty():
-			talks.append("%s:%s" % [person, state["won"]])
-	talks.sort()
-	trail.append_array(talks)
+	# Las conversaciones no cuentan: lo que una puerta abierta cambia del futuro
+	# ya está en sus banderas (con su horizonte), y sus pistas ya se anotaron en
+	# `found`. Fundir dos estados que solo difieren en puertas abiertas (o en la
+	# Confianza que queda) solo puede permitir volver a ganar una puerta, que no
+	# añade nada salvo el coste de forzar: una aproximación generosa.
 	var hunted: bool = s["rastro"] >= data.rastro_max or s["flags"].has("marcos_busca_akba")
 	return "%d|%s|%s|%d|%d|%d|%s|%s|%s" % [s["time"], ",".join(flags), ",".join(letters), s["rastro"],
 			s["desgaste"], s["exhausted_until"], s["positions"]["akba"] if hunted else "-", ",".join(trail), s["ending"]]
@@ -515,9 +546,8 @@ func _place_everyone(acted_actor: String, command: Dictionary) -> void:
 			positions[id] = command["place"]
 		else:
 			positions[id] = _routine_place(id, t)
-	for id: String in data.person_ids:
-		if not data.is_protagonist(id):
-			positions[id] = _routine_place(id, t)
+	for id: String in _npcs:
+		positions[id] = _routine_place(id, t)
 	if following != "":
 		positions[acted_actor] = positions[following]
 	for id: String in data.protagonist_ids:
@@ -527,19 +557,18 @@ func _place_everyone(acted_actor: String, command: Dictionary) -> void:
 
 
 ## Dónde está una persona a la hora `t`: el tramo "override" más reciente que se
-## cumpla; si no, el tramo normal más reciente que se cumpla.
+## cumpla; si no, el tramo normal más reciente que se cumpla (a igual hora, el
+## último de la lista).
 func _routine_place(id: String, t: int) -> String:
-	var normal: Dictionary = {}
-	var override: Dictionary = {}
-	for segment: Dictionary in data.people[id]["routine"]:
-		if segment["from"] > t or not check(segment["if"], {"place": segment["place"]}):
-			continue
-		if segment["override"]:
-			if override.is_empty() or segment["from"] >= override["from"]:
-				override = segment
-		elif normal.is_empty() or segment["from"] >= normal["from"]:
-			normal = segment
-	var chosen: Dictionary = override if not override.is_empty() else normal
+	var chosen: Dictionary = {}
+	var groups: Dictionary = _routine_desc[id]
+	for group: String in ["override", "normal"]:
+		for segment: Dictionary in groups[group]:
+			if segment["from"] <= t and check(segment["if"], {"place": segment["place"]}):
+				chosen = segment
+				break
+		if not chosen.is_empty():
+			break
 	if chosen.is_empty():
 		chosen = data.people[id]["routine"][0]
 	if chosen["follow"] != "":

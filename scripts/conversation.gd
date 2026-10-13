@@ -175,8 +175,9 @@ static func listen(data: GameData, conversation_id: String, actor: String, conte
 	return result
 
 
-## Todas las formas distintas de ganar ahora: [{door, cards, forced}], la más
-## corta para cada puerta y cada manera (a la fuerza o no). Determinista.
+## Todas las formas distintas de ganar ahora: [{door, cards, forced, confianza, clues}],
+## la más corta para cada puerta, cada manera (a la fuerza o no) y cada Confianza
+## final (decide si quedan banderas de confianza). Determinista.
 static func solve(data: GameData, conversation_id: String, actor: String, context: Dictionary) -> Array:
 	var key := _signature(data, conversation_id, actor, context)
 	if _solve_cache.has(key):
@@ -195,20 +196,49 @@ static func solve(data: GameData, conversation_id: String, actor: String, contex
 				var child: Dictionary = conv.duplicate(true)
 				play(data, child, card)
 				if child["result"] == "win":
-					var outcome := "%s|%s" % [child["door"], child["forced"]]
+					var outcome := outcome_key(child)
 					if not found.has(outcome):
-						found[outcome] = {"door": child["door"], "cards": child["played"].duplicate(), "forced": child["forced"]}
+						found[outcome] = {"door": child["door"], "cards": child["played"].duplicate(), "forced": child["forced"],
+								"confianza": child["confianza"], "clues": child["clues"].duplicate()}
 				elif child["result"] == "":
-					var state := "%s|%d|%d|%s|%s|%d" % [child["hand"], child["turns"], child["confianza"], child["revealed"].keys(),
-							child["broken"].keys(), child["silence"]]
+					var state := "%s|%d|%d|%s|%s|%d|%s" % [child["hand"], child["turns"], child["confianza"], child["revealed"].keys(),
+							child["broken"].keys(), child["silence"], child["used_force"]]
 					if not seen.has(state):
 						seen[state] = true
 						next.append(child)
 		frontier = next
 	var results: Array = found.values()
-	results.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return "%s|%s" % [a["door"], a["forced"]] < "%s|%s" % [b["door"], b["forced"]])
+	results.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return outcome_key(a) < outcome_key(b))
 	_solve_cache[key] = results
 	return results
+
+
+## Lo que distingue un resultado ganador: puerta, si fue a la fuerza y la Confianza final.
+static func outcome_key(conv: Dictionary) -> String:
+	return "%s|%s|%d" % [conv["door"], conv["forced"], conv["confianza"]]
+
+
+## Comprobación lenta (no va en los tests normales): todas las secuencias de
+## cartas posibles, sin podar ni quedarse con la más corta. Devuelve el conjunto
+## {outcome_key: true} de las que ganan, para compararlo con solve().
+static func brute_force_outcomes(data: GameData, conversation_id: String, actor: String, context: Dictionary) -> Dictionary:
+	var outcomes: Dictionary = {}
+	var stack: Array = [start(data, conversation_id, actor, context)]
+	while not stack.is_empty():
+		var conv: Dictionary = stack.pop_back()
+		var tried: Dictionary = {}
+		for card: String in conv["hand"]:
+			# Dos copias de la misma carta dan exactamente lo mismo.
+			if tried.has(card):
+				continue
+			tried[card] = true
+			var child: Dictionary = conv.duplicate(true)
+			play(data, child, card)
+			if child["result"] == "win":
+				outcomes[outcome_key(child)] = true
+			elif child["result"] == "":
+				stack.append(child)
+	return outcomes
 
 
 # --- Interno --------------------------------------------------------------

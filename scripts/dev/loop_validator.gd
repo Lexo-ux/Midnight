@@ -16,19 +16,38 @@ extends RefCounted
 ## que aquí se anota qué pista da observar cada lugar, con qué mirada y a qué
 ## hora, y se comprueba que cada punto revele su pista dentro de su ventana.
 ##
-## Conversaciones con cartas: cada una se explora como «solo escuchar» (no abre
-## ni cierra nada, descubre lo que pueda) y como cada forma de ganar que
-## encuentre Conversation.solve() con las cartas y el Cuaderno de ese momento.
+## Conversaciones con cartas, ABSTRAÍDAS (ver _conversation_commands()): aquí
+## nunca se buscan secuencias de cartas. Cada conversación da 1-4 órdenes, una
+## por efecto distinto en el bucle (banderas nuevas, si fue a la fuerza). Sin
+## esa abstracción la búsqueda no terminaba (más de 10 minutos). La prueba lenta
+## scripts/dev/tests/slow/test_conversation_abstraction.gd (run_tests.gd -- --slow) comprueba que los resultados
+## de Conversation.solve() son los mismos que probando todas las secuencias.
 ## Los quiebres: «sostuvo» es la interacción; «soltó» deja el mismo estado que
 ## esperar allí, que ya se explora.
+##
+## Límites: `max_states` (estados en total) y `timeout_ms`. Si se pasan, la
+## búsqueda se corta, `aborted` explica qué dimensión del estado creció más y
+## validate() lo da como problema. Nunca se ejecuta sin límite.
 
 const GameData := preload("res://scripts/game_data.gd")
 const Simulation := preload("res://scripts/simulation.gd")
 const Conversation := preload("res://scripts/conversation.gd")
 
 const MAX_PASSES: int = 8
+const DEFAULT_MAX_STATES: int = 2000000
+## Partes de Simulation.exploration_key(), para explicar un corte.
+const KEY_DIMENSIONS: PackedStringArray = ["hora", "banderas", "cartas", "Rastro", "Desgaste", "agotamiento",
+		"posición de Akba", "rastros was_at", "final"]
 
 var data: GameData
+var max_states: int = DEFAULT_MAX_STATES
+## 0: sin límite de tiempo (los estados siguen limitados).
+var timeout_ms: int = 0
+## Estados explorados desde que se creó el validador (o desde reset_limits()).
+var total_states: int = 0
+## "" o el motivo del corte.
+var aborted: String = ""
+var _started_ms: int = 0
 ## Bandera (o "trail:...") -> último minuto en que alguna condición puede leerla.
 var horizons: Dictionary = {}
 ## "lugar|protagonista|minuto|pista" -> true: observar el lugar dio esa pista.
@@ -38,11 +57,18 @@ var observed: Dictionary = {}
 func _init(game_data: GameData) -> void:
 	data = game_data
 	horizons = _compute_horizons()
+	reset_limits()
+
+
+func reset_limits() -> void:
+	total_states = 0
+	aborted = ""
+	_started_ms = Time.get_ticks_msec()
 
 
 ## Un bucle completo desde `cuaderno`. `banned` son ids de temas, interacciones
 ## o cartas (o "verbo:carta", p. ej. "retener:orden_lina") que no se pueden usar.
-## Devuelve {found: {pista|ending:id: true}, states: int}.
+## Devuelve {found: {pista|ending:id: true}, states: int, aborted: String}.
 func explore_loop(cuaderno: Dictionary, banned: Dictionary = {}) -> Dictionary:
 	var sim := Simulation.new(data)
 	sim.exploring = true
@@ -52,9 +78,12 @@ func explore_loop(cuaderno: Dictionary, banned: Dictionary = {}) -> Dictionary:
 	var frontier: Array[Dictionary] = [sim.clone_state()]
 	var seen: Dictionary = {sim.exploration_key(): true}
 	var states: int = 1
-	while not frontier.is_empty():
+	while not frontier.is_empty() and aborted == "":
 		var next_frontier: Array[Dictionary] = []
 		for state: Dictionary in frontier:
+			if total_states + states > max_states or (timeout_ms > 0 and Time.get_ticks_msec() - _started_ms > timeout_ms):
+				aborted = _abort_reason(sim, frontier, total_states + states)
+				break
 			for command: Dictionary in _successor_commands(sim, state, banned):
 				sim.s = state.duplicate(true)
 				if command.has("actor"):
@@ -69,7 +98,28 @@ func explore_loop(cuaderno: Dictionary, banned: Dictionary = {}) -> Dictionary:
 				if not sim.is_over():
 					next_frontier.append(sim.s)
 		frontier = next_frontier
-	return {"found": sim.found, "states": states}
+	total_states += states
+	return {"found": sim.found, "states": states, "aborted": aborted}
+
+
+## Por qué se cortó: límite pasado y la dimensión de la clave con más valores
+## distintos en la frontera (la que más ha crecido).
+func _abort_reason(sim: Simulation, frontier: Array[Dictionary], states: int) -> String:
+	var distinct: Array[Dictionary] = []
+	for i: int in KEY_DIMENSIONS.size():
+		distinct.append({})
+	for state: Dictionary in frontier:
+		sim.s = state
+		var parts := sim.exploration_key().split("|")
+		for i: int in mini(parts.size(), KEY_DIMENSIONS.size()):
+			distinct[i][parts[i]] = true
+	var widest: int = 1
+	for i: int in KEY_DIMENSIONS.size():
+		if distinct[i].size() > distinct[widest].size():
+			widest = i
+	var limit := "%d estados" % max_states if states > max_states else "%d s" % (timeout_ms / 1000)
+	return "búsqueda cortada (límite de %s) a las %s con %d estados y %d en la frontera; la dimensión que más creció: %s (%d valores distintos)." % [
+			limit, GameData.format_time(frontier[0]["time"]), states, frontier.size(), KEY_DIMENSIONS[widest], distinct[widest].size()]
 
 
 ## Pasadas sucesivas hasta que no se descubre nada más.
@@ -80,12 +130,14 @@ func explore_all(banned: Dictionary = {}, start_cuaderno: Dictionary = {}) -> Di
 	var clues: Dictionary = {}
 	var endings: Dictionary = {}
 	var doors: Dictionary = {}
-	var total_states: int = 0
+	var pass_states: int = 0
 	var passes: int = 0
 	for pass_number: int in range(1, MAX_PASSES + 1):
 		passes = pass_number
 		var result := explore_loop(cuaderno, banned)
-		total_states += result["states"]
+		pass_states += result["states"]
+		if result["aborted"] != "":
+			break
 		# Solo cambian el bucle siguiente las pistas que aparecen en alguna condición.
 		var changes_next_loop := false
 		for key: String in result["found"]:
@@ -101,7 +153,7 @@ func explore_all(banned: Dictionary = {}, start_cuaderno: Dictionary = {}) -> Di
 				changes_next_loop = changes_next_loop or data.referenced_clues.has(key)
 		if not changes_next_loop:
 			break
-	return {"clues": clues, "endings": endings, "doors": doors, "passes": passes, "states": total_states}
+	return {"clues": clues, "endings": endings, "doors": doors, "passes": passes, "states": pass_states, "aborted": aborted}
 
 
 ## Comprueba todo y devuelve {problems, result}. Con `start_cuaderno` se parte de
@@ -109,6 +161,9 @@ func explore_all(banned: Dictionary = {}, start_cuaderno: Dictionary = {}) -> Di
 func validate(start_cuaderno: Dictionary = {}) -> Dictionary:
 	var problems: PackedStringArray = []
 	var result := explore_all({}, start_cuaderno)
+	if aborted != "":
+		problems.append(aborted)
+		return {"problems": problems, "result": result}
 	for id: String in start_cuaderno:
 		result["clues"][id] = 0
 	for id: String in data.clue_ids:
@@ -236,42 +291,84 @@ func _successor_commands(sim: Simulation, state: Dictionary, banned: Dictionary)
 	return commands
 
 
-## Una conversación como órdenes: solo escuchar y cada forma de ganar que no
-## esté prohibida. Solo escuchar es una acción pura (pistas y nada más) salvo
-## que deje una bandera de confianza nueva; entonces se simula.
+## Una conversación como órdenes, ABSTRAÍDA: nunca se buscan secuencias de
+## cartas aquí. Conversation.listen() y Conversation.solve() (con caché por
+## persona, puertas abiertas y lo que sabe el Cuaderno) dan los resultados
+## posibles, y aquí se agrupan por su EFECTO en el bucle: banderas nuevas (de la
+## puerta y de confianza) y si fue a la fuerza (Rastro, Desgaste, akba_forzo).
+## Resultados sin efecto (solo pistas: escuchar, o una puerta que solo cuenta un
+## secreto) se anotan y equivalen a esperar allí. Cada efecto distinto es una
+## sola orden (1-4 por conversación).
 func _conversation_commands(sim: Simulation, actor: String, action: Dictionary, banned: Dictionary,
 		waited: Dictionary) -> Array[Dictionary]:
 	var commands: Array[Dictionary] = []
+	var by_effect: Dictionary = {}
 	var context := sim.conversation_context(actor, action["target"])
+	var outcomes: Array = []
 	var listening := Conversation.listen(data, action["id"], actor, context)
 	if not listening["cards"].is_empty():
-		if _sets_new_trust(sim, action["id"], actor, listening["confianza"]):
-			var command: Dictionary = action.duplicate()
-			command["cards"] = listening["cards"]
-			commands.append({"actor": actor, "command": command})
-		else:
-			for clue: String in listening["clues"]:
+		outcomes.append({"door": "", "cards": listening["cards"], "forced": false, "confianza": listening["confianza"],
+				"clues": listening["clues"]})
+	outcomes.append_array(Conversation.solve(data, action["id"], actor, context))
+	var effects: Array[String] = []
+	var unforced: Dictionary = {}
+	for outcome: Dictionary in outcomes:
+		var door: String = outcome["door"]
+		if door != "" and banned.has("door:" + door):
+			effects.append("banned")
+			continue
+		# Cualquier resultado es alcanzable desde aquí: sus pistas y su puerta cuentan ya.
+		for clue: String in outcome["clues"]:
+			sim.found[clue] = true
+		if door != "":
+			sim.found["door:" + door] = true
+			for clue: String in data.conversation_elements[door]["effects"]["clues"]:
 				sim.found[clue] = true
+		var effect := _conversation_effect(sim, action["id"], actor, outcome)
+		effects.append(effect)
+		if not outcome["forced"]:
+			unforced[effect.get_slice("|", 0) + "|" + effect.get_slice("|", 2) if effect != "" else "|0"] = true
+	for i: int in outcomes.size():
+		var effect := effects[i]
+		if effect == "banned":
+			continue
+		if effect == "":
 			if not waited.has(action["place"]):
 				waited[action["place"]] = true
 				commands.append({"actor": actor, "command": {"verb": "esperar", "place": action["place"], "target": "", "id": ""}})
-	for outcome: Dictionary in Conversation.solve(data, action["id"], actor, context):
-		if banned.has("door:" + outcome["door"]):
 			continue
-		var command: Dictionary = action.duplicate()
-		command["cards"] = outcome["cards"]
-		commands.append({"actor": actor, "command": command})
+		# Dominancia: ganar a la fuerza deja lo mismo que ganar sin forzar más el
+		# coste de forzar; si aquí se puede lo segundo, lo primero no se explora.
+		if outcomes[i]["forced"] and unforced.has(effect.get_slice("|", 0) + "|" + effect.get_slice("|", 2)):
+			continue
+		if not by_effect.has(effect):
+			by_effect[effect] = true
+			var command: Dictionary = action.duplicate()
+			command["cards"] = outcomes[i]["cards"]
+			commands.append({"actor": actor, "command": command})
 	return commands
 
 
-func _sets_new_trust(sim: Simulation, conversation_id: String, actor: String, confianza: int) -> bool:
+## Firma del efecto de un resultado en el estado actual: "" si no cambia nada
+## más que las pistas; si no, las banderas nuevas ordenadas y si fue a la fuerza.
+func _conversation_effect(sim: Simulation, conversation_id: String, actor: String, outcome: Dictionary) -> String:
+	var flags: Array = []
+	var rastro: int = 0
+	if outcome["door"] != "":
+		var effects: Dictionary = data.conversation_elements[outcome["door"]]["effects"]
+		rastro = effects["rastro"]
+		for flag: String in effects["set"]:
+			if not sim.s["flags"].has(flag):
+				flags.append(flag)
 	var trust: Variant = data.conversations[conversation_id]["trust"]
-	if trust == null or trust["actor"] != actor or confianza < trust["min"]:
-		return false
-	for flag: String in trust["set"]:
-		if not sim.s["flags"].has(flag):
-			return true
-	return false
+	if trust != null and trust["actor"] == actor and outcome["confianza"] >= trust["min"]:
+		for flag: String in trust["set"]:
+			if not sim.s["flags"].has(flag) and not flags.has(flag):
+				flags.append(flag)
+	if flags.is_empty() and not outcome["forced"] and rastro == 0:
+		return ""
+	flags.sort()
+	return "%s|%s|%d" % [",".join(flags), outcome["forced"], rastro]
 
 
 ## Horizonte de cada bandera: la condición que la lee más tarde. Un tramo de

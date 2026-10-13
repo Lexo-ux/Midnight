@@ -1,6 +1,8 @@
 extends SceneTree
 ## Ejecuta todos los tests sin pantalla:
-##   godot --headless --path . --script res://scripts/dev/run_tests.gd
+##   godot --headless --path . --script res://scripts/dev/run_tests.gd [-- --slow]
+## Con --slow corren también las pruebas lentas (SLOW_MODULES), que no van en
+## la batería normal.
 ## Cada método `test_*` de los módulos es un test; debe terminar con `return true`
 ## (si un error de script lo corta, devuelve null y cuenta como FAIL).
 ## Sale con código 1 si algún test falla.
@@ -19,6 +21,9 @@ const TEST_MODULES: Array[String] = [
 	"res://scripts/dev/tests/test_art_pipeline.gd",
 	"res://scripts/dev/tests/test_softlock_fuzz.gd",
 ]
+const SLOW_MODULES: Array[String] = [
+	"res://scripts/dev/tests/slow/test_conversation_abstraction.gd",
+]
 
 var _has_run: bool = false
 
@@ -36,7 +41,10 @@ func _run_all() -> void:
 	var passed: int = 0
 	var failed: int = 0
 	var started := Time.get_ticks_msec()
-	for path: String in TEST_MODULES:
+	var modules: Array[String] = TEST_MODULES.duplicate()
+	if OS.get_cmdline_user_args().has("--slow"):
+		modules.append_array(SLOW_MODULES)
+	for path: String in modules:
 		var suite: RefCounted = load(path).new()
 		suite.set("tree", self)
 		for method: Dictionary in suite.get_method_list():
