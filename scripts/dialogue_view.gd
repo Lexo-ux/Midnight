@@ -9,6 +9,7 @@ const ArtLibrary := preload("res://scripts/art_library.gd")
 @onready var _speaker: Label = %Speaker
 @onready var _line: Label = %Line
 @onready var _clues: Label = %NewClues
+@onready var _clues_card: PanelContainer = %NewCluesCard
 @onready var _next: Button = %Next
 
 var _index: int = 0
@@ -58,8 +59,8 @@ func _render() -> void:
 		_portrait.show_person(data, _art, line["speaker"], GameState.velo_level(line["speaker"]))
 		_speaker.text = data.people[line["speaker"]]["name"]
 		_line.text = line["text"]
-	_clues.visible = last and not clues.is_empty()
-	if _clues.visible:
+	_clues_card.visible = last and not clues.is_empty()
+	if _clues_card.visible:
 		var titles: PackedStringArray = []
 		for id: String in clues:
 			titles.append("• " + data.clues[id]["title"])

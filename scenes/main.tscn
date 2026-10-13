@@ -12,6 +12,15 @@
 [ext_resource type="PackedScene" path="res://scenes/conversation_view.tscn" id="10_conversation"]
 [ext_resource type="PackedScene" path="res://scenes/breakpoint_view.tscn" id="11_breakpoint"]
 [ext_resource type="PackedScene" path="res://scenes/tips_view.tscn" id="12_tips"]
+[ext_resource type="PackedScene" path="res://scenes/loop_reset_view.tscn" id="13_loop_reset"]
+[ext_resource type="Script" path="res://scripts/look_wipe.gd" id="14_wipe"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/hint.svg" id="15_hint"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/gear.svg" id="16_gear"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/map.svg" id="17_map"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/notebook.svg" id="18_notebook"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/clock.svg" id="19_clock"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/back.svg" id="20_back"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/chevron_down.svg" id="21_more"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -30,7 +39,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.09, 0.08, 0.16, 1)
+color = Color(0.09019608, 0.07058824, 0.2, 1)
 
 [node name="PlaceView" parent="." instance=ExtResource("2_place")]
 unique_name_in_owner = true
@@ -45,10 +54,10 @@ anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -300.0
-offset_top = -1200.0
-offset_right = 300.0
-offset_bottom = -800.0
+offset_left = -280.0
+offset_top = -1240.0
+offset_right = 280.0
+offset_bottom = -820.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
@@ -63,31 +72,41 @@ theme_type_variation = &"TopPanel"
 
 [node name="Box" type="VBoxContainer" parent="Top"]
 layout_mode = 2
+theme_type_variation = &"VBoxTight"
 
 [node name="Header" type="HBoxContainer" parent="Top/Box"]
 layout_mode = 2
 
-[node name="TimeLabel" type="Label" parent="Top/Box/Header"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_vertical = 4
-theme_type_variation = &"Clock"
-
-[node name="LoopLabel" type="Label" parent="Top/Box/Header"]
-unique_name_in_owner = true
+[node name="ClockBox" type="VBoxContainer" parent="Top/Box/Header"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
+theme_type_variation = &"VBoxTight"
+
+[node name="TimeLabel" type="Label" parent="Top/Box/Header/ClockBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Clock"
+
+[node name="LoopLabel" type="Label" parent="Top/Box/Header/ClockBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"NightMuted"
 
 [node name="WhatNowButton" type="Button" parent="Top/Box/Header"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(144, 144)
 layout_mode = 2
+theme_type_variation = &"Hint"
+icon = ExtResource("15_hint")
 
 [node name="SettingsButton" type="Button" parent="Top/Box/Header"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(144, 144)
 layout_mode = 2
+theme_type_variation = &"IconButton"
+icon = ExtResource("16_gear")
+icon_alignment = 1
 
 [node name="Buttons" type="HBoxContainer" parent="Top/Box"]
 layout_mode = 2
@@ -97,26 +116,39 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(144, 144)
 layout_mode = 2
 size_flags_horizontal = 3
-autowrap_mode = 3
+theme_type_variation = &"NavButton"
+icon = ExtResource("17_map")
+icon_alignment = 1
+vertical_icon_alignment = 0
 
 [node name="NotebookButton" type="Button" parent="Top/Box/Buttons"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(144, 144)
 layout_mode = 2
 size_flags_horizontal = 3
-autowrap_mode = 3
+theme_type_variation = &"NavButton"
+icon = ExtResource("18_notebook")
+icon_alignment = 1
+vertical_icon_alignment = 0
 
 [node name="ToolsButton" type="Button" parent="Top/Box/Buttons"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(144, 144)
 layout_mode = 2
 size_flags_horizontal = 3
-autowrap_mode = 3
+theme_type_variation = &"NavButton"
+icon = ExtResource("19_clock")
+icon_alignment = 1
+vertical_icon_alignment = 0
 
-[node name="CaptionRow" type="HBoxContainer" parent="Top/Box"]
+[node name="CaptionPanel" type="PanelContainer" parent="Top/Box"]
+unique_name_in_owner = true
 layout_mode = 2
 
-[node name="Caption" type="Label" parent="Top/Box/CaptionRow"]
+[node name="CaptionRow" type="HBoxContainer" parent="Top/Box/CaptionPanel"]
+layout_mode = 2
+
+[node name="Caption" type="Label" parent="Top/Box/CaptionPanel/CaptionRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -124,12 +156,13 @@ size_flags_vertical = 4
 theme_type_variation = &"Caption"
 autowrap_mode = 3
 
-[node name="BackButton" type="Button" parent="Top/Box/CaptionRow"]
+[node name="BackButton" type="Button" parent="Top/Box/CaptionPanel/CaptionRow"]
 unique_name_in_owner = true
 visible = false
-custom_minimum_size = Vector2(200, 144)
+custom_minimum_size = Vector2(144, 144)
 layout_mode = 2
 size_flags_vertical = 4
+icon = ExtResource("20_back")
 
 [node name="Status" type="Label" parent="Top/Box"]
 unique_name_in_owner = true
@@ -159,7 +192,7 @@ autowrap_mode = 3
 
 [node name="PeopleScroll" type="ScrollContainer" parent="Bottom/Box"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 124)
+custom_minimum_size = Vector2(0, 160)
 layout_mode = 2
 vertical_scroll_mode = 0
 
@@ -167,25 +200,59 @@ vertical_scroll_mode = 0
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="ActionsScroll" type="ScrollContainer" parent="Bottom/Box"]
+[node name="ActionsFrame" type="Control" parent="Bottom/Box"]
 layout_mode = 2
 size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="ActionsScroll" type="ScrollContainer" parent="Bottom/Box/ActionsFrame"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 horizontal_scroll_mode = 0
 
-[node name="Actions" type="VBoxContainer" parent="Bottom/Box/ActionsScroll"]
+[node name="Actions" type="VBoxContainer" parent="Bottom/Box/ActionsFrame/ActionsScroll"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+
+[node name="MoreHint" type="TextureRect" parent="Bottom/Box/ActionsFrame"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -112.0
+offset_top = -60.0
+offset_right = -32.0
+offset_bottom = -4.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+texture = ExtResource("21_more")
 
 [node name="Switcher" type="HBoxContainer" parent="Bottom/Box"]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="Sweep" type="ColorRect" parent="."]
+[node name="Sweep" type="Control" parent="."]
 unique_name_in_owner = true
 visible = false
-layout_mode = 0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
+script = ExtResource("14_wipe")
 
 [node name="MapView" parent="." instance=ExtResource("9_map")]
 unique_name_in_owner = true
@@ -220,5 +287,9 @@ unique_name_in_owner = true
 layout_mode = 1
 
 [node name="TipsView" parent="." instance=ExtResource("12_tips")]
+unique_name_in_owner = true
+layout_mode = 1
+
+[node name="LoopResetView" parent="." instance=ExtResource("13_loop_reset")]
 unique_name_in_owner = true
 layout_mode = 1

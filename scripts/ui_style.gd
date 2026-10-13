@@ -82,11 +82,17 @@ const TEXT_PAIRS: Array[Array] = [
 	["PaperLabel sobre Paper", TEXT_DARK, PAPER],
 	["PaperMuted sobre Paper", TEXT_DARK_MUTED, PAPER],
 	["PaperMuted sobre PaperCard", TEXT_DARK_MUTED, PAPER_CARD],
+	["CardText sobre Card", TEXT_LIGHT_MUTED, VIOLET],
+	["CardText sobre CardKnowledge", TEXT_LIGHT_MUTED, Color("1f5c58")],
 	["Button", TEXT_LIGHT, VIOLET],
 	["Button pulsado", TEXT_LIGHT, VIOLET_PRESSED],
 	["Primary", INK, NEON_YELLOW],
 	["Selected", INK, PAPER],
 	["Danger", INK, NEON_PINK],
+	["Hint", INK, NEON_CYAN],
+	["Banner", INK, NEON_CYAN],
+	["Mapa: nodo", INK, PAPER],
+	["Mapa: aquí", INK, NEON_YELLOW],
 	["Sazil", TEXT_DARK, SAZIL_FILL],
 	["Sazil activa", TEXT_DARK, SAZIL_FILL_ACTIVE],
 	["Akba", TEXT_LIGHT, AKBA_FILL],
@@ -214,12 +220,24 @@ static func build_theme() -> Theme:
 		(selected[state] as StyleBoxFlat).set_border_width_all(OUTLINE_HEAVY)
 		(selected[state] as StyleBoxFlat).border_width_bottom = SELECTED_BASE
 	_set_button(theme, "Selected", selected, INK, "Button")
+	# Pestañas: como Button/Selected, con menos margen a los lados (caben cuatro).
+	_set_button(theme, "Tab", button_boxes(VIOLET, VIOLET_PRESSED, RADIUS, SPACE_XS, SPACE_S), TEXT_LIGHT, "Button")
+	var tab_on := button_boxes(PAPER, PAPER.darkened(0.08), RADIUS, SPACE_XS, SPACE_S, SELECTED_BASE)
+	for state: String in ["normal", "hover", "pressed", "hover_pressed"]:
+		(tab_on[state] as StyleBoxFlat).set_border_width_all(OUTLINE_HEAVY)
+		(tab_on[state] as StyleBoxFlat).border_width_bottom = SELECTED_BASE
+	_set_button(theme, "TabSelected", tab_on, INK, "Button")
 	_set_button(theme, "Chip", button_boxes(NIGHT_RAISED, VIOLET_PRESSED, RADIUS_PILL, SPACE_M, SPACE_XS), TEXT_LIGHT, "Button")
 	var chip_on := button_boxes(PAPER, PAPER.darkened(0.08), RADIUS_PILL, SPACE_M, SPACE_XS, SELECTED_BASE)
 	for state: String in ["normal", "hover", "pressed", "hover_pressed"]:
 		(chip_on[state] as StyleBoxFlat).set_border_width_all(OUTLINE_HEAVY)
 		(chip_on[state] as StyleBoxFlat).border_width_bottom = SELECTED_BASE
 	_set_button(theme, "ChipSelected", chip_on, INK, "Button")
+	_set_button(theme, "Hint", button_boxes(NEON_CYAN, NEON_CYAN.darkened(0.15), RADIUS, SPACE_M, SPACE_S), INK, "Button")
+	_set_button(theme, "IconButton", button_boxes(VIOLET, VIOLET_PRESSED, RADIUS, SPACE_S, SPACE_S), TEXT_LIGHT, "Button")
+	# Navegación (Mapa, Cuaderno, Tiempo): icono encima del texto, márgenes cortos.
+	_set_button(theme, "NavButton", button_boxes(VIOLET, VIOLET_PRESSED, RADIUS, SPACE_XS, SPACE_XS), TEXT_LIGHT, "Button")
+	theme.set_constant("h_separation", "NavButton", 2)
 	_set_button(theme, "Card", button_boxes(VIOLET, VIOLET_PRESSED, RADIUS_LARGE, SPACE_S, SPACE_S), TEXT_LIGHT, "Button")
 	_set_button(theme, "CardKnowledge", button_boxes(Color("1f5c58"), Color("17463f"), RADIUS_LARGE, SPACE_S, SPACE_S), TEXT_LIGHT, "Button")
 	# Selector de protagonista: Sazil redondeada (sol), Akba en chaflán (luna).
@@ -243,6 +261,24 @@ static func build_theme() -> Theme:
 	_set_button(theme, "SazilButtonActive", sazil_active, TEXT_DARK, "Button")
 	_set_button(theme, "AkbaButton", akba, TEXT_LIGHT, "Button")
 	_set_button(theme, "AkbaButtonActive", akba_active, TEXT_LIGHT, "Button")
+
+	# Nodos del mapa (redondos): se puede ir, estás aquí (aro grueso amarillo) o sin explorar (sin contorno).
+	_set_button(theme, "MapNode", button_boxes(PAPER, PAPER.darkened(0.1), 999, 0, 0), INK, "Button")
+	var here := button_boxes(NEON_YELLOW, NEON_YELLOW, 999, 0, 0, OUTLINE_HEAVY)
+	for state: String in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
+		(here[state] as StyleBoxFlat).set_border_width_all(OUTLINE_HEAVY + 3)
+		(here[state] as StyleBoxFlat).bg_color = NEON_YELLOW
+	_set_button(theme, "MapNodeHere", here, INK, "Button")
+	var locked := button_boxes(Color("4b4566"), Color("4b4566"), 999, 0, 0)
+	for state: String in locked:
+		if state != "focus":
+			var box := locked[state] as StyleBoxFlat
+			box.set_border_width_all(0)
+			box.shadow_size = 0
+			box.bg_color = Color("4b4566", 0.7)
+	_set_button(theme, "MapNodeLocked", locked, TEXT_LIGHT_MUTED, "Button")
+	for type: String in ["MapNode", "MapNodeHere", "MapNodeLocked"]:
+		theme.set_stylebox("disabled", type, theme.get_stylebox("normal", type))
 
 	# Interruptores: el botón entero es el área táctil; el icono dice encendido
 	# (bola a la derecha con ✓) o apagado (bola a la izquierda, hueca).
@@ -330,8 +366,21 @@ static func build_theme() -> Theme:
 	theme.set_constant("outline_size", "Clock", CAPTION_OUTLINE)
 	_set_label(theme, "Badge", INK)
 	theme.set_font("font", "Badge", bold)
+	# Cartas de conversación: título en negrita y texto claro sobre violeta.
+	_set_label(theme, "CardTitle", TEXT_LIGHT)
+	theme.set_font("font", "CardTitle", bold)
+	_set_label(theme, "CardText", TEXT_LIGHT_MUTED)
+	# Texto oscuro sobre el aviso cian (vista previa desde el mapa).
+	_set_label(theme, "BannerLabel", INK)
+	theme.set_font("font", "BannerLabel", bold)
+	# Texto que va sobre la escena (mapa, etiquetas de puntos): claro y con contorno.
+	_set_label(theme, "MapLabel", TEXT_LIGHT)
+	theme.set_font("font", "MapLabel", bold)
+	theme.set_color("font_outline_color", "MapLabel", INK)
+	theme.set_constant("outline_size", "MapLabel", CAPTION_OUTLINE)
 
-	# Paneles.
+	# Paneles (un PanelContainer sin variación no dibuja nada).
+	theme.set_stylebox("panel", "PanelContainer", StyleBoxEmpty.new())
 	_set_panel(theme, "Paper", marker_box(PAPER, OUTLINE, RADIUS_LARGE, SHADOW, SPACE_XL, SPACE_XL))
 	(theme.get_stylebox("panel", "Paper") as StyleBoxFlat).content_margin_top = 64
 	_set_panel(theme, "Sheet", marker_box(PAPER, OUTLINE, RADIUS_LARGE, SHADOW, SPACE_L, SPACE_L))
@@ -353,6 +402,10 @@ static func build_theme() -> Theme:
 	_set_panel(theme, "Card", marker_box(PAPER_CARD, 3, RADIUS, 0, SPACE_M, SPACE_S))
 	_set_panel(theme, "CardNight", marker_box(NIGHT_RAISED, 3, RADIUS, 0, SPACE_M, SPACE_S))
 	_set_panel(theme, "Banner", marker_box(NEON_CYAN, OUTLINE, RADIUS, SHADOW, SPACE_M, SPACE_S))
+	_set_panel(theme, "DangerBanner", marker_box(NEON_PINK, OUTLINE, RADIUS, SHADOW, SPACE_M, SPACE_S))
+	# Fichas de muros y puertas: descubiertas (contorno) o por descubrir (sin contorno, apagadas).
+	_set_panel(theme, "ChipKnown", marker_box(PAPER_CARD, 3, RADIUS_PILL, 0, SPACE_S, 4))
+	_set_panel(theme, "ChipUnknown", marker_box(Color(PAPER_CARD, 0.5), 0, RADIUS_PILL, 0, SPACE_S + 3, 7))
 	_set_panel(theme, "BadgePanel", marker_box(NEON_YELLOW, 3, RADIUS_PILL, 0, SPACE_S, 2))
 	var plate := marker_box(PAPER, 3, 999, 0, 0, 0)
 	plate.corner_detail = 16
@@ -377,7 +430,7 @@ static func apply_text_size(theme: Theme, sizes: Dictionary) -> void:
 	var title: int = sizes["title"]
 	theme.default_font_size = body
 	for type: String in ["Label", "Button", "CheckButton", "NightLabel", "NightMuted", "PaperLabel", "PaperMuted",
-			"SwitchStatus", "SwitchStatusDark", "Caption", "Badge"]:
+			"SwitchStatus", "SwitchStatusDark", "Caption", "Badge", "BannerLabel", "MapLabel", "CardTitle", "CardText"]:
 		theme.set_font_size("font_size", type, body)
 	for type: String in ["TitleLabel", "PaperTitle", "SwitchName", "SwitchNameDark", "Clock"]:
 		theme.set_font_size("font_size", type, title)

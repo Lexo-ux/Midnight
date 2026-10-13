@@ -10,6 +10,13 @@ extends Control
 ##   toca la simulación. La siguiente acción recentra la cámara.
 ## - La mirada de Sazil es cálida y cotidiana; la de Akba, más fría, con la capa
 ##   akba_overlay y sus fisuras tornasoladas.
+## - Puntos interactivos: el icono de su ranura (`hotspot_look`, un ojo, para
+##   Sazil; `hotspot_fissure`, una grieta en rombo, para Akba) dentro de un aro
+##   que late: redondo para la mirada, en rombo para la fisura (que además
+##   tornasola del verde al carmesí). Lo ya descubierto lleva ✓ y su nombre en
+##   una ficha legible sobre cualquier fondo. Con movimiento reducido no laten.
+## - Flechas en los bordes cuando se puede mirar más hacia ese lado.
+## - Al pasar el tiempo la luz cambia siempre con un fundido (nunca de golpe).
 ## Solo guarda estado visual; todo lo demás lo lee de GameState.
 
 signal hotspot_tapped(hotspot_id: String)
@@ -20,6 +27,9 @@ const GameData := preload("res://scripts/game_data.gd")
 const SceneRules := preload("res://scripts/scene_rules.gd")
 const ArtLibrary := preload("res://scripts/art_library.gd")
 const PlaceholderArt := preload("res://scripts/placeholder_art.gd")
+const UiStyle := preload("res://scripts/ui_style.gd")
+const CHEVRON_LEFT := preload("res://assets/ui/icons/chevron_left.svg")
+const CHEVRON_RIGHT := preload("res://assets/ui/icons/chevron_right.svg")
 const SILHOUETTE_SCENE := preload("res://scenes/silhouette.tscn")
 const SHIMMER := preload("res://assets/shaders/akba_shimmer.gdshader")
 
@@ -28,20 +38,26 @@ const MID_FACTOR: float = 1.0
 const FG_FACTOR: float = 1.3
 ## El primer plano va algo más oscuro que el resto.
 const FG_SHADE: float = 0.3
-## Diámetro mínimo en pantalla de lo que se puede tocar (personas y puntos).
-const TOUCH_MIN: float = 130.0
+## Diámetro mínimo en pantalla de lo que se puede tocar (personas y puntos): 48 dp.
+const TOUCH_MIN: float = UiStyle.MIN_TOUCH
+## Radio en pantalla del marcador de un punto interactivo.
+const HINT_SCREEN_RADIUS: float = 58.0
+## Radio en el lienzo para los toques (como antes del marcador nuevo).
 const HINT_RADIUS: float = 70.0
+const PULSE_SECONDS: float = 1.4
+## Fundido mínimo de la luz al pasar el tiempo.
+const LIGHT_MIN_SECONDS: float = 0.5
 const PERSON_SPREAD: float = 200.0
 const PERSON_WIDTH_RATIO: float = 0.8
 const OTHER_ALPHA: float = 0.8
-const HINT_COLOR := Color(1.0, 0.95, 0.8, 0.85)
-const FISSURE_COLOR := Color("5affc8")
-const LABEL_SIZE: int = 76
+## Letra en pantalla de los nombres de los puntos descubiertos.
+const LABEL_SCREEN_SIZE: int = 40
 
 @onready var _world: Control = $World
 @onready var _light: ColorRect = $Light
 @onready var _grade: ColorRect = $Grade
 @onready var _offstage: Label = $Offstage
+@onready var _edge_hints: Control = $EdgeHints
 
 var place: String = ""
 var look: String = ""
@@ -78,6 +94,9 @@ var _light_blend: float = 1.0:
 	set(value):
 		_light_blend = value
 		_apply_light()
+var _pulse: float = 0.0
+var _shown_minute: int = -1
+var _hotspot_icons: Dictionary = {}
 var _pressing: bool = false
 var _dragging: bool = false
 var _press_position: Vector2 = Vector2.ZERO
@@ -87,12 +106,16 @@ func _ready() -> void:
 	clip_contents = true
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	resized.connect(func() -> void: camera_x = camera_x)
+	_edge_hints.draw.connect(_draw_edge_hints)
+	set_process(false)
 
 
 func bind(state: GameStateScript, art: ArtLibrary) -> void:
 	_state = state
 	_data = state.data
 	_art = art
+	for kind: String in ["hotspot_look", "hotspot_fissure"]:
+		_hotspot_icons[kind] = art.texture_for(kind) if art != null else null
 
 
 ## Escala del lienzo a la pantalla: el lienzo llena el alto de la vista.
@@ -113,6 +136,7 @@ func refresh(view_place: String, preview: bool, selected: String) -> void:
 		_show_offstage(actor)
 		return
 	_offstage.hide()
+	_edge_hints.show()
 	_world.show()
 	_light.show()
 	_grade.show()
@@ -135,7 +159,13 @@ func refresh(view_place: String, preview: bool, selected: String) -> void:
 		if station == "":
 			station = _data.scenes[view_place]["entry"]
 		focus_x(_data.station_x(view_place, station), seconds)
-	_set_light(_state.current_time(), seconds if not arrived else 0.0)
+	# La luz cambia con un fundido cuando pasa el tiempo (nunca de golpe).
+	var minute := _state.current_time()
+	var light_seconds := 0.0
+	if not arrived and not reduced and _shown_minute >= 0 and minute != _shown_minute:
+		light_seconds = maxf(seconds, LIGHT_MIN_SECONDS)
+	_shown_minute = minute
+	_set_light(minute, light_seconds)
 	var overlay_on: bool = _data.looks[look]["overlay"]
 	_overlay.visible = overlay_on
 	if _overlay_art != null and _overlay_art.material != null:
@@ -267,10 +297,21 @@ func _refresh_hotspots() -> void:
 	for hotspot: Dictionary in _data.scenes[place]["hotspots"]:
 		if _state.hotspot_available(hotspot["id"]):
 			_hotspots.append(hotspot)
+	# Solo late (y se redibuja cada fotograma) si hay algo que latir.
+	set_process(not _hotspots.is_empty() and not _state.settings["reduced_motion"])
+	if not is_processing():
+		_pulse = 0.0
+	_hotspot_layer.queue_redraw()
+
+
+func _process(delta: float) -> void:
+	_pulse = fmod(_pulse + delta / PULSE_SECONDS, 1.0)
 	_hotspot_layer.queue_redraw()
 
 
 func _show_offstage(actor: String) -> void:
+	set_process(false)
+	_edge_hints.hide()
 	_world.hide()
 	_light.hide()
 	_grade.hide()
@@ -300,6 +341,7 @@ func _apply_camera() -> void:
 	if near != _near_station:
 		_near_station = near
 		_hotspot_layer.queue_redraw()
+	_edge_hints.queue_redraw()
 
 
 ## La luz pasa de la hora mostrada a `minute` en `seconds` (0 = al instante).
@@ -377,21 +419,69 @@ func _tap(screen: Vector2) -> void:
 			return
 
 
+## Marcadores de los puntos (en px del lienzo; los tamaños se dan en pantalla).
 func _draw_hotspots() -> void:
 	var font := get_theme_default_font()
+	var zoom := view_scale()
+	var radius := HINT_SCREEN_RADIUS / zoom
+	var outline := UiStyle.OUTLINE / zoom
 	for hotspot: Dictionary in _hotspots:
 		var discovered := _state.hotspot_discovered(hotspot["id"])
 		if not discovered and hotspot["station"] != _near_station:
 			continue
 		var center := Vector2(hotspot["x"], hotspot["y"])
-		var color: Color = FISSURE_COLOR if hotspot["fissure"] else HINT_COLOR
-		_hotspot_layer.draw_arc(center, HINT_RADIUS, 0.0, TAU, 48, Color(color, 0.35), 18.0, true)
-		_hotspot_layer.draw_arc(center, HINT_RADIUS, 0.0, TAU, 48, color, 6.0, true)
-		_hotspot_layer.draw_circle(center, 12.0, color)
+		var fissure: bool = hotspot["fissure"]
+		# La fisura tornasola del verde al carmesí; la mirada es blanca.
+		var shimmer := 0.5 + 0.5 * sin(_pulse * TAU)
+		var color: Color = UiStyle.UMBRAL.lerp(UiStyle.UMBRAL_EDGE, shimmer * 0.6) if fissure else UiStyle.PAPER
+		# Aro que late hacia fuera: redondo (mirada) o en rombo (fisura).
+		if not discovered:
+			var grow := radius * (1.0 + 0.6 * _pulse)
+			_draw_marker_ring(center, grow, Color(color, 1.0 - _pulse), outline * 1.5, fissure)
+		_draw_marker_ring(center, radius, UiStyle.INK, outline * 3.0, fissure)
+		_draw_marker_ring(center, radius, color, outline * 1.5, fissure)
+		var icon: Texture2D = _hotspot_icons.get("hotspot_fissure" if fissure else "hotspot_look")
+		var icon_rect := Rect2(center - Vector2(radius, radius) * 0.78, Vector2(radius, radius) * 1.56)
+		if icon != null:
+			_hotspot_layer.draw_texture_rect(icon, icon_rect, false)
+		else:
+			_hotspot_layer.draw_circle(center, radius * 0.3, color)
 		if discovered:
+			# ✓ de descubierto y el nombre en una ficha oscura con contorno.
+			var badge := center + Vector2(radius, -radius) * 0.75
+			_hotspot_layer.draw_circle(badge, radius * 0.36, UiStyle.INK)
+			_hotspot_layer.draw_circle(badge, radius * 0.3, UiStyle.NEON_GREEN)
+			_hotspot_layer.draw_polyline(PackedVector2Array([badge + Vector2(-0.14, 0.0) * radius, badge + Vector2(-0.03, 0.11) * radius,
+					badge + Vector2(0.16, -0.11) * radius]), UiStyle.INK, outline * 1.6, true)
 			var text: String = hotspot["label"]
-			var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_SIZE).x
-			_hotspot_layer.draw_string_outline(font, center + Vector2(-width * 0.5, -HINT_RADIUS - 24), text,
-					HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_SIZE, 10, Color(0, 0, 0, 0.7))
-			_hotspot_layer.draw_string(font, center + Vector2(-width * 0.5, -HINT_RADIUS - 24), text,
-					HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_SIZE, color)
+			var font_size := int(LABEL_SCREEN_SIZE / zoom)
+			var text_size := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
+			var pad := Vector2(UiStyle.SPACE_S, UiStyle.SPACE_XS) / zoom
+			var chip := Rect2(center + Vector2(-text_size.x * 0.5, -radius * 1.3 - text_size.y) - pad, text_size + pad * 2.0)
+			_hotspot_layer.draw_rect(chip.grow(outline), UiStyle.INK)
+			_hotspot_layer.draw_rect(chip, UiStyle.NIGHT_RAISED)
+			_hotspot_layer.draw_string(font, chip.position + pad + Vector2(0, font.get_ascent(font_size)), text,
+					HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, UiStyle.TEXT_LIGHT)
+
+
+func _draw_marker_ring(center: Vector2, radius: float, color: Color, width: float, diamond: bool) -> void:
+	if not diamond:
+		_hotspot_layer.draw_arc(center, radius, 0.0, TAU, 48, color, width, true)
+		return
+	var points := PackedVector2Array([center + Vector2(0, -radius), center + Vector2(radius, 0), center + Vector2(0, radius),
+			center + Vector2(-radius, 0), center + Vector2(0, -radius)])
+	_hotspot_layer.draw_polyline(points, color, width, true)
+
+
+## Flechas en los bordes: hay más escena hacia ese lado (se puede arrastrar).
+func _draw_edge_hints() -> void:
+	if _data == null or place == "":
+		return
+	var view := view_width()
+	var left_limit := SceneRules.clamp_camera(-INF, view, _data.canvas_size.x)
+	var right_limit := SceneRules.clamp_camera(INF, view, _data.canvas_size.x)
+	var y := size.y * 0.62 - CHEVRON_LEFT.get_height() * 0.5
+	if camera_x > left_limit + 1.0:
+		_edge_hints.draw_texture(CHEVRON_LEFT, Vector2(UiStyle.SPACE_XS, y), Color(1, 1, 1, 0.85))
+	if camera_x < right_limit - 1.0:
+		_edge_hints.draw_texture(CHEVRON_RIGHT, Vector2(size.x - CHEVRON_RIGHT.get_width() - UiStyle.SPACE_XS, y), Color(1, 1, 1, 0.85))

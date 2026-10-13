@@ -176,10 +176,13 @@ func _shot_person_selected() -> bool:
 	return true
 
 
+## Akba de noche en la plaza (con su mirada y sus fisuras).
 func _shot_place_night() -> bool:
 	_gs.switch_to("akba")
-	_skip("22:00")
-	return true
+	_skip("21:30")
+	_gs.perform({"verb": "esperar", "place": "plaza", "target": "", "id": ""})
+	_gs.dismiss_outcome()
+	return _gs.position_of("akba") == "plaza"
 
 
 func _shot_switch_hold() -> bool:

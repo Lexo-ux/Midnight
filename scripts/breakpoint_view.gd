@@ -6,12 +6,17 @@ extends PanelContainer
 ## Ajustes). Nada exige reflejos: si la app pierde el foco, el tiempo se para.
 ## La partida solo recibe la decisión final ("sostuvo" o "soltó") como la
 ## interacción del quiebre, que cuesta 30 minutos (GameState.resolve_breakpoint()).
+## El botón dice cómo se sostiene con su icono (mano que mantiene o que toca) y
+## la pausa se ve: anillo apagado, símbolo de pausa y el aviso en cian.
 
 const ArtLibrary := preload("res://scripts/art_library.gd")
 const SaveManager := preload("res://scripts/save_manager.gd")
 const SustainController := preload("res://scripts/sustain_controller.gd")
 const UiMotion := preload("res://scripts/ui_motion.gd")
 const UiStyle := preload("res://scripts/ui_style.gd")
+const HOLD_ICON := preload("res://assets/ui/icons/hold.svg")
+const TAP_ICON := preload("res://assets/ui/icons/tap.svg")
+const SHIMMER_SECONDS: float = 2.0
 ## A partir de aquí se dice la frase de «ya casi».
 const NEAR_END: float = 0.75
 
@@ -22,6 +27,7 @@ signal closed
 @onready var _option: Label = %Option
 @onready var _ring: Control = %Ring
 @onready var _hint: Label = %Hint
+@onready var _hint_panel: PanelContainer = %HintPanel
 @onready var _hands: Control = %Hands
 @onready var _controls: VBoxContainer = %Controls
 @onready var _sustain: Button = %Sustain
@@ -45,6 +51,7 @@ var controller: SustainController
 var _breakpoint: Dictionary = {}
 var _hint_key: String = ""
 var _next_pulse_ms: int = 0
+var _shimmer_time: float = 0.0
 
 
 func _ready() -> void:
@@ -110,7 +117,7 @@ func _begin() -> void:
 	_choice.hide()
 	_done.hide()
 	_controls.show()
-	for part: Control in [_ring, _hint, _hands]:
+	for part: Control in [_ring, _hint_panel, _hands]:
 		part.show()
 	var time: String = GameState.settings["breakpoint_time"]
 	var milliseconds: int = 0 if time == "none" else int(time) * 1000
@@ -127,7 +134,7 @@ func _show_choice() -> void:
 	_controls.hide()
 	_done.hide()
 	_choice.show()
-	for part: Control in [_ring, _hint, _hands]:
+	for part: Control in [_ring, _hint_panel, _hands]:
 		part.hide()
 	_choice_title.text = data.text("quiebre_elegir_titulo")
 	_choice_help.text = data.text("quiebre_elegir_ayuda")
@@ -163,19 +170,26 @@ func _choice_button(text: String, active: bool, on_pressed: Callable) -> Button:
 	return button
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if controller == null:
 		return
+	if not GameState.settings["reduced_motion"]:
+		_shimmer_time = fmod(_shimmer_time + delta / SHIMMER_SECONDS, 1.0)
+		_ring.set_shimmer(0.5 + 0.5 * sin(_shimmer_time * TAU))
 	controller.update()
 	if controller.state == "holding":
 		var now := now_ms()
 		if now >= _next_pulse_ms:
 			Haptics.play("sustain_pulse")
 			_next_pulse_ms = now + Haptics.sustain_interval_ms(controller.progress())
-	_ring.set_state(controller.progress(), controller.is_timed())
+	_ring.set_state(controller.progress(), controller.is_timed(), _is_paused())
 	_update_texts()
 	if controller.state == "done":
 		_finish()
+
+
+func _is_paused() -> bool:
+	return controller != null and controller.state in ["paused", "resuming"]
 
 
 func _input_press(down: bool) -> void:
@@ -205,7 +219,7 @@ func _after_input() -> void:
 	if controller.state == "holding":
 		_next_pulse_ms = 0
 	_later.visible = controller.state == "idle"
-	_ring.set_state(controller.progress(), controller.is_timed())
+	_ring.set_state(controller.progress(), controller.is_timed(), _is_paused())
 	_update_texts()
 	if controller.state == "done":
 		_finish()
@@ -228,6 +242,14 @@ func _update_texts() -> void:
 	if key == _hint_key:
 		return
 	_hint_key = key
+	# En pausa, el aviso va en cian (forma de aviso, no solo otro texto).
+	var paused := key == "quiebre_pausa"
+	_hint_panel.theme_type_variation = &"Banner" if paused else &""
+	_hint.theme_type_variation = &"BannerLabel" if paused else &"NightLabel"
+	if not controller.is_timed():
+		_sustain.icon = null
+	else:
+		_sustain.icon = TAP_ICON if controller.mode == "toggle" else HOLD_ICON
 	_hint.text = _breakpoint[key] if key in ["holding", "near_end"] else data.text(key)
 	if not controller.is_timed():
 		_sustain.text = data.text("quiebre_confirmar")

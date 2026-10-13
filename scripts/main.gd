@@ -4,26 +4,30 @@ extends Control
 ## acciones y se redibuja cuando cambia. Solo guarda estado visual: qué lugar se
 ## mira desde el mapa, a quién se ha elegido y la animación del relevo.
 ##
-## Arriba: hora, bucle, «¿Qué hago?», Ajustes, y Mapa, Cuaderno y Herramientas.
-## En medio: la escena. Abajo, al alcance del pulgar: lo que se puede hacer allí
-## y el selector Sazil/Akba con sus retratos.
+## Arriba: hora (con un pequeño tic al avanzar), bucle, «¿Qué hago?» (siempre a
+## mano), Ajustes, y Mapa, Cuaderno y Tiempo. En medio: la escena (mirando otro
+## lugar desde el mapa, un aviso cian con «Volver»). Abajo, al alcance del
+## pulgar: lo que se puede hacer allí (una flecha avisa si hay más abajo) y el
+## selector Sazil/Akba con sus retratos.
 ##
 ## Encima, sin cambiar de escena: conversaciones con cartas, momentos de
 ## quiebre (se abren solos al llegar el momento si el protagonista está allí),
 ## consejos de la primera partida y los paneles de siempre. El botón «atrás» de
 ## Android cierra el de más arriba (y en una conversación con cartas jugadas
 ## pregunta antes); sin nada abierto abre Ajustes: nunca sale del juego.
-## También manda sonido (AudioDirector) y vibración (Haptics).
+## También manda sonido (AudioDirector) y vibración (Haptics), el relevo de
+## mirada (look_wipe.gd), la transición de bucle (loop_reset_view.gd) y el
+## pequeño aplastamiento de cualquier botón al pulsarlo. Nada de esto se mueve
+## con movimiento reducido.
 
 const GameData := preload("res://scripts/game_data.gd")
 const ArtLibrary := preload("res://scripts/art_library.gd")
 const UiStyle := preload("res://scripts/ui_style.gd")
+const UiMotion := preload("res://scripts/ui_motion.gd")
 const SWITCH_BUTTON_SCENE := preload("res://scenes/switch_button.tscn")
 ## Acciones que no dependen del lugar (la bolsa de Sazil).
 const BAG_VERBS: PackedStringArray = ["leer", "retener"]
 const SWEEP_SECONDS: float = 0.22
-const SWEEP_WIDTH_RATIO: float = 0.45
-const SWEEP_ALPHA: float = 0.45
 ## Margen de los paneles de arriba y abajo sin zona segura (el del tema).
 const TOP_MARGIN: float = 48.0
 const BOTTOM_MARGIN: float = 24.0
@@ -35,6 +39,7 @@ const BOTTOM_MARGIN: float = 24.0
 @onready var _caption: Label = %Caption
 @onready var _status: Label = %Status
 @onready var _back_button: Button = %BackButton
+@onready var _caption_panel: PanelContainer = %CaptionPanel
 @onready var _map_button: Button = %MapButton
 @onready var _notebook_button: Button = %NotebookButton
 @onready var _tools_button: Button = %ToolsButton
@@ -46,8 +51,10 @@ const BOTTOM_MARGIN: float = 24.0
 @onready var _people: HBoxContainer = %People
 @onready var _people_scroll: ScrollContainer = %PeopleScroll
 @onready var _actions: VBoxContainer = %Actions
+@onready var _actions_scroll: ScrollContainer = %ActionsScroll
+@onready var _more_hint: TextureRect = %MoreHint
 @onready var _switcher: HBoxContainer = %Switcher
-@onready var _sweep: ColorRect = %Sweep
+@onready var _sweep: Control = %Sweep
 @onready var _map: Control = %MapView
 @onready var _dialogue: Control = %DialogueView
 @onready var _notebook: Control = %NotebookView
@@ -57,6 +64,7 @@ const BOTTOM_MARGIN: float = 24.0
 @onready var _conversation: Control = %ConversationView
 @onready var _breakpoint: Control = %BreakpointView
 @onready var _tips: Control = %TipsView
+@onready var _loop_reset: Control = %LoopResetView
 
 var _art: ArtLibrary = ArtLibrary.new()
 var _switch_buttons: Dictionary[String, Button] = {}
@@ -66,10 +74,11 @@ var _view_place: String = ""
 var _selected: String = ""
 ## Cambia con cada acción o relevo: entonces se olvidan la vista previa y la persona elegida.
 var _route_key: String = ""
-var _sweep_tween: Tween
 var _refresh_queued: bool = false
 ## Quiebres que ya se abrieron solos ("bucle|hora|interacción"): no se insiste.
 var _breakpoints_offered: Dictionary = {}
+## Hora que se enseñaba (para el tic del reloj).
+var _shown_time: String = ""
 
 
 func _ready() -> void:
@@ -86,7 +95,8 @@ func _ready() -> void:
 	_breakpoint.bind(_art)
 	_notebook.bind(_art)
 	_dialogue.bind(_art)
-	_map.bind(GameState)
+	_loop_end.bind(_art)
+	_map.bind(GameState, _art)
 	_map.place_chosen.connect(_preview_place)
 	for actor: String in data.protagonist_ids:
 		var button: Button = SWITCH_BUTTON_SCENE.instantiate()
@@ -97,7 +107,7 @@ func _ready() -> void:
 	_map_button.text = data.text("boton_mapa")
 	_notebook_button.text = data.text("boton_cuaderno")
 	_tools_button.text = data.text("boton_herramientas")
-	_settings_button.text = data.text("boton_ajustes")
+	_settings_button.tooltip_text = data.text("boton_ajustes")
 	_back_button.text = data.text("escena_volver")
 	_what_now_button.text = data.text("que_hago")
 	_what_now_button.pressed.connect(func() -> void: _notebook.what_now())
@@ -110,6 +120,13 @@ func _ready() -> void:
 	_settings_button.pressed.connect(func() -> void: _settings.open())
 	_back_button.pressed.connect(func() -> void: _preview_place(""))
 	_loop_end.notebook_requested.connect(func() -> void: _notebook.open())
+	_loop_end.next_loop_started.connect(_play_loop_reset)
+	_tips.set_targets([_switcher, _notebook_button, _tools_button])
+	_actions_scroll.get_v_scroll_bar().value_changed.connect(func(_value: float) -> void: _update_more_hint())
+	_actions_scroll.get_v_scroll_bar().changed.connect(_update_more_hint)
+	get_tree().node_added.connect(_attach_press)
+	for button: Node in find_children("*", "BaseButton", true, false):
+		_attach_press(button)
 	GameState.changed.connect(_queue_refresh)
 	GameState.switched.connect(_play_sweep)
 	GameState.settings_changed.connect(_on_settings_changed)
@@ -142,17 +159,24 @@ func _refresh() -> void:
 	var preview := place != here
 	if not GameState.people_at(place).has(_selected):
 		_selected = ""
-	_time_label.text = GameData.format_time(GameState.current_time())
+	var time_text := GameData.format_time(GameState.current_time())
+	if time_text != _shown_time and _shown_time != "" and not GameState.settings["reduced_motion"]:
+		UiMotion.tick(_time_label)
+	_shown_time = time_text
+	_time_label.text = time_text
 	_loop_label.text = data.text("bucle").format({"n": GameState.loop_number})
 	_place_view.refresh(place, preview, _selected)
 	var reduced: bool = GameState.settings["reduced_motion"]
 	_hands.show_hands(actor, GameState.hands_state(actor), 0.0 if reduced else data.scene_camera["hands_ms"] / 1000.0)
+	# Sin escena (el protagonista está en otro sitio), no hay manos que enseñar.
+	_hands.visible = data.has_scene(place)
 	_refresh_caption(place, preview)
 	_refresh_status()
 	_refresh_switcher()
 	var actions := GameState.get_actions()
 	_refresh_people(place, actions)
 	_refresh_actions(place, here, actions)
+	_update_more_hint.call_deferred()
 	_dialogue.sync()
 	_loop_end.sync(_dialogue.has_pending())
 	AudioDirector.set_scene_sound(data.is_night(GameState.current_time()), _near_fissure(here))
@@ -163,6 +187,9 @@ func _refresh_caption(place: String, preview: bool) -> void:
 	var data := GameState.data
 	var actor := GameState.active_actor()
 	_back_button.visible = preview and data.has_scene(place)
+	# Mirando otro lugar desde el mapa: aviso cian (forma y color) con «Volver».
+	_caption_panel.theme_type_variation = &"Banner" if _back_button.visible else &""
+	_caption.theme_type_variation = &"BannerLabel" if _back_button.visible else &"Caption"
 	if _back_button.visible:
 		_caption.text = data.text("escena_lejos").format({"lugar": data.locations[place]["name"]})
 		return
@@ -311,30 +338,50 @@ func _preview_place(place: String) -> void:
 	_queue_refresh()
 
 
-## El relevo: un barrido de luz desde el lado de quien entra (Sazil por la
-## izquierda, Akba por la derecha) mientras cambia la mirada de la escena. Si se
-## cambia muy rápido, el barrido anterior se corta y empieza otro. Con
-## movimiento reducido no hay barrido.
+## El relevo: una franja de rotulador desde el lado de quien entra (Sazil por
+## la izquierda, Akba por la derecha) mientras cambia la mirada de la escena. Si
+## se cambia muy rápido, la anterior se corta y empieza otra. Con movimiento
+## reducido no hay franja.
 func _play_sweep(actor: String) -> void:
 	AudioDirector.play_event("switch_" + actor)
 	Haptics.play("switch")
-	if _sweep_tween != null and _sweep_tween.is_valid():
-		_sweep_tween.kill()
 	if GameState.settings["reduced_motion"]:
-		_sweep.hide()
+		_sweep.stop()
 		return
 	var data := GameState.data
-	var width := size.x * SWEEP_WIDTH_RATIO
 	var from_left := data.protagonist_ids.find(actor) == 0
-	var color: Color = data.people[actor]["colors"]["body"].lightened(0.5)
-	color.a = SWEEP_ALPHA
-	_sweep.color = color
-	_sweep.size = Vector2(width, size.y)
-	_sweep.position = Vector2(-width if from_left else size.x, 0)
-	_sweep.show()
-	_sweep_tween = create_tween()
-	_sweep_tween.tween_property(_sweep, "position:x", size.x if from_left else -width, SWEEP_SECONDS)
-	_sweep_tween.tween_callback(_sweep.hide)
+	_sweep.play(from_left, UiStyle.SAZIL_FILL_ACTIVE if from_left else UiStyle.AKBA_FILL_ACTIVE, SWEEP_SECONDS)
+
+
+## Bucle nuevo: el reloj vuelve atrás (o corte con movimiento reducido).
+func _play_loop_reset() -> void:
+	var data := GameState.data
+	_loop_reset.play(_art, data.text("bucle").format({"n": GameState.loop_number}), data.day_end, data.loop_start,
+			GameState.settings["reduced_motion"])
+
+
+## La flecha de «hay más acciones abajo»: solo si no caben y no se ha bajado del todo.
+func _update_more_hint() -> void:
+	var bar := _actions_scroll.get_v_scroll_bar()
+	_more_hint.visible = bar.max_value - bar.page > 1.0 and bar.value < bar.max_value - bar.page - 1.0
+
+
+## Cualquier botón de la pantalla se aplasta un poco al pulsarlo (salvo con
+## movimiento reducido).
+func _attach_press(node: Node) -> void:
+	if node is BaseButton and is_ancestor_of(node) and not node.has_meta(&"press_motion"):
+		node.set_meta(&"press_motion", true)
+		var button := node as BaseButton
+		button.button_down.connect(_on_button_down.bind(button))
+		button.button_up.connect(_on_button_up.bind(button))
+
+
+func _on_button_down(button: BaseButton) -> void:
+	UiMotion.press(button, GameState.settings["reduced_motion"])
+
+
+func _on_button_up(button: BaseButton) -> void:
+	UiMotion.release(button, GameState.settings["reduced_motion"])
 
 
 func _on_settings_changed() -> void:
@@ -379,7 +426,7 @@ func _near_fissure(place: String) -> bool:
 
 
 func _overlay_open() -> bool:
-	for overlay: Control in [_conversation, _breakpoint, _tips, _settings, _tools, _notebook, _map, _dialogue, _loop_end]:
+	for overlay: Control in [_conversation, _breakpoint, _tips, _settings, _tools, _notebook, _map, _dialogue, _loop_end, _loop_reset]:
 		if overlay.visible:
 			return true
 	return false
@@ -398,7 +445,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func go_back() -> void:
-	if _tips.visible:
+	if _loop_reset.visible:
+		_loop_reset.skip()
+	elif _tips.visible:
 		_tips.close()
 	elif _conversation.visible:
 		_conversation.back()

@@ -4,14 +4,19 @@ extends Button
 ## (esquinas redondas o en chaflán), no solo por color.
 ##
 ## Mientras se mantiene pulsado, el retrato pasa a `portrait_hand_raised` (la
-## persona levanta la mano). El cambio se hace al soltar DENTRO del botón; si
-## el dedo sale, se cancela. Sin arte, el retrato es la silueta sobre su placa.
+## persona levanta la mano) y la placa sube y crece un poco (≤ 250 ms; sin
+## animación con movimiento reducido). El cambio se hace al soltar DENTRO del
+## botón; si el dedo sale, se cancela. Sin arte, el retrato es la silueta sobre
+## su placa.
 
 signal chosen(actor: String)
 
 const GameStateScript := preload("res://scripts/game_state.gd")
 const ArtLibrary := preload("res://scripts/art_library.gd")
 const UiStyle := preload("res://scripts/ui_style.gd")
+const RAISE_SCALE: float = 1.12
+const RAISE_PIXELS: float = 14.0
+const RAISE_SECONDS: float = 0.15
 
 @onready var _frame: Panel = %Frame
 @onready var _portrait: TextureRect = %Portrait
@@ -24,6 +29,7 @@ var actor: String = ""
 var _state: GameStateScript
 var _art: ArtLibrary
 var _raised: bool = false
+var _raise_tween: Tween
 
 
 func _ready() -> void:
@@ -69,6 +75,29 @@ func _set_raised(raised: bool) -> void:
 		return
 	_raised = raised
 	_show_portrait()
+	_animate_raise()
+
+
+## La placa del retrato sube al levantar la mano y vuelve al soltar.
+func _animate_raise() -> void:
+	if _raise_tween != null and _raise_tween.is_valid():
+		_raise_tween.kill()
+	_frame.pivot_offset = Vector2(_frame.size.x * 0.5, _frame.size.y)
+	var target_scale := Vector2.ONE * (RAISE_SCALE if _raised else 1.0)
+	var target_y := -RAISE_PIXELS if _raised else 0.0
+	var reduced: bool = _state != null and _state.settings["reduced_motion"]
+	if reduced or not is_inside_tree():
+		_frame.scale = target_scale
+		_frame.position.y = _frame_rest_y() + target_y
+		return
+	_raise_tween = create_tween().set_parallel().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_raise_tween.tween_property(_frame, "scale", target_scale, RAISE_SECONDS)
+	_raise_tween.tween_property(_frame, "position:y", _frame_rest_y() + target_y, RAISE_SECONDS)
+
+
+## Dónde queda la placa en reposo (centrada en la fila).
+func _frame_rest_y() -> float:
+	return (_frame.get_parent_control().size.y - _frame.size.y) * 0.5
 
 
 func _show_portrait() -> void:
